@@ -48,6 +48,28 @@ class SignUp(QWidget):
 
         self.setLayout(layout)
 
+class HomePage(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Sentilyze")
+        self.setStyleSheet("background-color: #232323;")
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignCenter)
+
+        logo = QLabel()
+        logo_pixmap = QPixmap("logo.png")
+        logo.setPixmap(logo_pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        logo.setAlignment(Qt.AlignCenter)
+        layout.addWidget(logo)
+
+        title = QLabel("Welcome to Sentilyze")
+        title.setFont(QFont("Century Gothic", 32))
+        title.setStyleSheet("color: #fff; margin-bottom: 40px;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        self.setLayout(layout)
+
 class FirstPage(QWidget):
     def __init__(self):
         super().__init__()
@@ -77,6 +99,7 @@ class FirstPage(QWidget):
         login_button = QPushButton("LOGIN")
         login_button.setFixedHeight(45)
         login_button.setStyleSheet("background-color: #757575; color: #fff; font-size: 20px; border-radius: 4px;")
+        login_button.clicked.connect(self.open_homepage)
         layout.addWidget(login_button)
 
         self.setLayout(layout)
@@ -84,6 +107,11 @@ class FirstPage(QWidget):
     def open_signup(self):
         self.signup_window = SignUp()
         self.signup_window.showFullScreen()
+        self.close()
+
+    def open_homepage(self):
+        self.homepage_window = HomePage()
+        self.homepage_window.showFullScreen()
         self.close()
 
 def main():
