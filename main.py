@@ -8,7 +8,6 @@ class FirstPage(QWidget):
         super().__init__()
         self.setWindowTitle("Sentilyze")
         self.setStyleSheet("background-color: #232323;")
-        self.setFixedSize(600, 500)
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignCenter)
 
@@ -39,7 +38,7 @@ class FirstPage(QWidget):
 def main():
     app = QApplication(sys.argv)
     window = FirstPage()
-    window.show()
+    window.showFullScreen()
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
