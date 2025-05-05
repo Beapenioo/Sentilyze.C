@@ -1,6 +1,6 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QMessageBox, QHBoxLayout, QRadioButton, QButtonGroup
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QMessageBox, QHBoxLayout, QRadioButton, QButtonGroup, QScrollArea
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont, QPixmap, QIcon
 from sqlalchemy import create_engine, Column, Integer, String, event
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -605,17 +605,34 @@ class HomePage(QWidget):
         self.history_title.setStyleSheet("color: #fff; background-color: #232323;" if self.theme == 'dark' else "color: #232323; background-color: #F4F4F4;")
         left_panel.addWidget(self.history_title, alignment=Qt.AlignLeft)
 
+        self.history_widget = QWidget()
         self.history_list = QVBoxLayout()
-        left_panel.addLayout(self.history_list)
+        self.history_list.setAlignment(Qt.AlignTop)
+        self.history_widget.setLayout(self.history_list)
+        self.history_widget.setMinimumWidth(200)
+        self.history_widget.setMaximumWidth(200)
+        self.history_scroll = QScrollArea()
+        self.history_scroll.setWidgetResizable(True)
+        self.history_scroll.setWidget(self.history_widget)
+        self.history_scroll.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        left_panel.addWidget(self.history_scroll)
         left_panel.addStretch(1)
 
         center_panel = QVBoxLayout()
         center_panel.setAlignment(Qt.AlignBottom)
         center_panel.setSpacing(20)
 
+        self.chat_box_widget = QWidget()
         self.chat_box = QVBoxLayout()
         self.chat_box.setAlignment(Qt.AlignTop)
-        center_panel.addLayout(self.chat_box)
+        self.chat_box_widget.setLayout(self.chat_box)
+        self.chat_box_widget.setMinimumWidth(700)
+        self.chat_box_widget.setMaximumWidth(700)
+        self.chat_scroll = QScrollArea()
+        self.chat_scroll.setWidgetResizable(True)
+        self.chat_scroll.setWidget(self.chat_box_widget)
+        self.chat_scroll.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        center_panel.addWidget(self.chat_scroll, stretch=1)
         center_panel.addSpacing(30)
 
         self.analyze_widget = QWidget()
@@ -641,7 +658,7 @@ class HomePage(QWidget):
             emoji_row.addWidget(emoji)
         analyze_layout.addLayout(emoji_row)
 
-        result_label = QLabel("The text has an overall neutral sentiment with a slight positive leaning.")
+        result_label = QLabel("")
         result_label.setStyleSheet("color: #fff; font-size: 18px;")
         result_label.setAlignment(Qt.AlignCenter)
         analyze_layout.addWidget(result_label, alignment=Qt.AlignCenter)
@@ -719,6 +736,13 @@ class HomePage(QWidget):
         self.setLayout(main_layout)
         self.update_language(self.language)
 
+    def detect_lang(self, text):
+        turkish_chars = "çğıöşü"
+        for ch in turkish_chars:
+            if ch in text.lower():
+                return "tr"
+        return "en"
+
     def analyze_sentiment_api(self, text, lang="en"):
         try:
             response = requests.post(
@@ -727,16 +751,23 @@ class HomePage(QWidget):
             )
             if response.ok:
                 data = response.json()
-                return data['label'], data['score']
+                return data['label'], data['score'], data.get('explanation', '')
             else:
-                return "error", 0
+                return "error", 0, ""
         except Exception as e:
             print(f"API error: {e}")
-            return "error", 0
+            return "error", 0, ""
 
     def send_message(self):
         text = self.text_input.text().strip()
         if text:
+            # Create message container
+            message_container = QWidget()
+            message_layout = QVBoxLayout()
+            message_layout.setContentsMargins(0, 0, 0, 20)
+            message_layout.setSpacing(10)
+
+            # User message
             msg_widget = QWidget()
             msg_layout = QHBoxLayout()
             msg_layout.setContentsMargins(0, 0, 0, 0)
@@ -755,18 +786,67 @@ class HomePage(QWidget):
                 msg.setStyleSheet("color: #232323; font-size: 20px; background: transparent;")
             msg_layout.addWidget(msg)
             msg_widget.setLayout(msg_layout)
-            self.chat_box.addWidget(msg_widget)
+            message_layout.addWidget(msg_widget)
+
+            # Analyzing widget (bar.png and text)
+            analyzing_widget = QWidget()
+            analyzing_layout = QVBoxLayout()
+            analyzing_layout.setContentsMargins(50, 0, 0, 0)
+            analyzing_layout.setSpacing(5)
+            bar_logo = QLabel()
+            bar_pixmap = QPixmap("icons/bar.png")
+            bar_logo.setPixmap(bar_pixmap.scaled(120, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            bar_logo.setAlignment(Qt.AlignCenter)
+            analyzing_layout.addWidget(bar_logo, alignment=Qt.AlignCenter)
+            analyzing_label = QLabel("Text is analyzing...")
+            analyzing_label.setStyleSheet("color: #fff; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #232323; font-size: 18px; font-weight: bold;")
+            analyzing_label.setAlignment(Qt.AlignCenter)
+            analyzing_layout.addWidget(analyzing_label, alignment=Qt.AlignCenter)
+            analyzing_widget.setLayout(analyzing_layout)
+            message_layout.addWidget(analyzing_widget)
+            message_container.setLayout(message_layout)
+            self.chat_box.addWidget(message_container)
             self.text_input.clear()
-            lang = self.language if hasattr(self, 'language') else 'en'
-            label, score = self.analyze_sentiment_api(text, lang)
-            self.analyze_widget.show()
-            if hasattr(self.analyze_widget, 'result_label'):
-                self.analyze_widget.result_label.setText(f"{label} ({score:.2f})")
-            else:
-                for child in self.analyze_widget.findChildren(QLabel):
-                    if 'sentiment' in child.text().lower() or 'Text is analyzing' in child.text():
-                        child.setText(f"{label} ({score:.2f})")
-                        break
+            # Scroll to bottom after adding new message
+            QTimer.singleShot(100, lambda: self.chat_scroll.verticalScrollBar().setValue(self.chat_scroll.verticalScrollBar().maximum()))
+
+            def show_result():
+                # Remove analyzing widget
+                analyzing_widget.setParent(None)
+                lang = self.detect_lang(text)
+                label, score, explanation = self.analyze_sentiment_api(text, lang)
+                result_widget = QWidget()
+                result_layout = QVBoxLayout()
+                result_layout.setContentsMargins(50, 0, 0, 0)
+                result_layout.setSpacing(5)
+                # Logo
+                logo_label = QLabel()
+                logo_pixmap = QPixmap("icons/logo.png")
+                logo_label.setPixmap(logo_pixmap.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                logo_label.setAlignment(Qt.AlignLeft)
+                result_layout.addWidget(logo_label, alignment=Qt.AlignLeft)
+                # Sentiment label with score
+                if label == "error":
+                    sentiment_label = QLabel("Sunucuya ulaşılamıyor veya analiz yapılamadı.")
+                    sentiment_label.setStyleSheet("color: #ff5555; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #b00020; font-size: 18px; font-weight: bold;")
+                    print(f"API error: label=error, score={score}, explanation={explanation}")
+                else:
+                    sentiment_label = QLabel(f"{label.upper()} ({score:.2f})")
+                    sentiment_label.setStyleSheet("color: #fff; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #232323; font-size: 18px; font-weight: bold;")
+                result_layout.addWidget(sentiment_label)
+                # Explanation
+                if explanation:
+                    explanation_label = QLabel(explanation)
+                    explanation_label.setWordWrap(True)
+                    explanation_label.setStyleSheet("color: #fff; font-size: 16px;" if self.theme == 'dark' else "color: #232323; font-size: 16px;")
+                    result_layout.addWidget(explanation_label)
+                result_widget.setLayout(result_layout)
+                message_layout.addWidget(result_widget)
+                message_container.setLayout(message_layout)
+            # Simulate analysis delay (1 second)
+            QTimer.singleShot(1000, show_result)
+
+            # Add to history
             history_btn = QPushButton(text[:30] + ("..." if len(text) > 30 else ""))
             if self.theme == 'dark':
                 history_btn.setStyleSheet("background-color: #444; color: #fff; border:none; text-align:left; padding:8px; font-size:16px;")
@@ -776,10 +856,19 @@ class HomePage(QWidget):
             self.history_list.addWidget(history_btn)
 
     def show_profile_menu(self):
-        if self.profile_menu.isVisible():
-            self.profile_menu.hide()
-        else:
-            self.profile_menu.show()
+        try:
+            if self.profile_menu.isVisible():
+                self.profile_menu.hide()
+            else:
+                self.profile_menu.show()
+            layout = self.profile_menu.layout()
+            if layout:
+                for i in range(layout.count()):
+                    btn = layout.itemAt(i).widget()
+                    if btn and btn.text().lower() in ["log out", "çıkış yap"]:
+                        btn.clicked.connect(self.logout)
+        except Exception as e:
+            print(f"Profile menu error: {e}")
 
     def goto_profile(self):
         self.parent().setCentralWidget(ProfilePage(self.user_name, self.user_surname, self.user_email, self.session, self.language))
@@ -826,6 +915,9 @@ class HomePage(QWidget):
                 else:
                     btn.setStyleSheet("background-color: #E0E0E0; color: #232323; border:none; text-align:left; padding:8px; font-size:16px;")
 
+    def logout(self):
+        self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -868,3 +960,11 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    // Yapılacaklar
+    //Tablolara özel sınıf oluşturulacak ve fonksiyonları eklenecek
+    //Tabloların içerikleri veritabanına gidecek
+    // Feedback eklenecek
+    // AI eklenecek
+    // Settings kısmına notification eklenecek
+    

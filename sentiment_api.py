@@ -9,7 +9,7 @@ tr_model = pipeline("sentiment-analysis", model="savasy/bert-base-turkish-sentim
 
 class TextRequest(BaseModel):
     text: str
-    lang: str = "en"  # "en" veya "tr"
+    lang: str = "en"  
 
 @app.post("/analyze")
 def analyze_sentiment(req: TextRequest):
