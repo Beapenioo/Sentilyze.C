@@ -5,3 +5,5 @@ sqlalchemy
 pymysql
 bcrypt
 pydantic 
+## pip install fastapi uvicorn
+## uvicorn api:app --reload for api

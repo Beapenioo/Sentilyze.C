@@ -15,6 +15,8 @@ class DatabaseOperations:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
+                
+                # Users table
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,9 +27,73 @@ class DatabaseOperations:
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
+                
+                # Text entries table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS text_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        text TEXT NOT NULL,
+                        language TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    )
+                ''')
+                
+                # Settings table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS settings (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        key TEXT NOT NULL,
+                        value TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id),
+                        UNIQUE(user_id, key)
+                    )
+                ''')
+                
+                # Session logs table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS session_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        action TEXT NOT NULL,
+                        details TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    )
+                ''')
+                
+                # Feedbacks table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS feedbacks (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        rating INTEGER NOT NULL,
+                        comment TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    )
+                ''')
+                
+                # Analysis results table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS analysis_results (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        text_entry_id INTEGER NOT NULL,
+                        sentiment_label TEXT NOT NULL,
+                        sentiment_score REAL NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (text_entry_id) REFERENCES text_entries(id)
+                    )
+                ''')
+                
                 conn.commit()
+                print("Tablolar başarıyla oluşturuldu.")
         except Exception as e:
-            print(f"Error creating tables: {e}")
+            print(f"Tablolar oluşturulurken hata oluştu: {e}")
 
     def register_user(self, name, surname, email, password):
         try:

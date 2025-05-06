@@ -2,10 +2,11 @@ import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QMessageBox, QHBoxLayout, QRadioButton, QButtonGroup, QScrollArea
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont, QPixmap, QIcon
-from sqlalchemy import create_engine, Column, Integer, String, event
+from sqlalchemy import create_engine, Column, Integer, String, event, ForeignKey, DateTime, Float, Text, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 import requests
+from datetime import datetime
 
 TRANSLATIONS = {
     'en': {
@@ -76,15 +77,114 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
 
-def init_db():
+class SessionLog(Base):
+    __tablename__ = 'session_logs'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    login_time = Column(DateTime, default=datetime.now)
+    logout_time = Column(DateTime, nullable=True)
+
+class TextEntry(Base):
+    __tablename__ = 'text_entries'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    text = Column(Text, nullable=False)
+    language = Column(String(10), nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+
+class AnalysisResult(Base):
+    __tablename__ = 'analysis_results'
+    result_id = Column(Integer, primary_key=True, autoincrement=True)
+    text_id = Column(Integer, ForeignKey('text_entries.id'), nullable=False)
+    sentiment = Column(String(50), nullable=False)
+    sentiment_score = Column(Float, nullable=False)
+    analysis_date = Column(DateTime, default=datetime.now)
+
+class Feedback(Base):
+    __tablename__ = 'feedbacks'
+    feedback_id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    text_id = Column(Integer, ForeignKey('text_entries.id'), nullable=False)
+    feedback_text = Column(String(500), nullable=True)
+    rating = Column(Integer, nullable=False)
+    feedback_date = Column(DateTime, default=datetime.now)
+
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
     try:
-        DATABASE_URL = "mysql+pymysql://root:@localhost:3306/sentilyze"
-        engine = create_engine(DATABASE_URL, echo=True)
-        Base.metadata.create_all(engine)
-        Session = sessionmaker(bind=engine)
-        return Session()
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# Global database session and engine
+db_engine = None
+db_session = None
+
+def get_db_engine():
+    global db_engine
+    if db_engine is None:
+        try:
+            DATABASE_URL = "mysql+pymysql://root:@localhost:3306/sentilyze"
+            db_engine = create_engine(DATABASE_URL, echo=True)
+            
+            # Veritabanı bağlantısını test et
+            with db_engine.connect() as conn:
+                # Veritabanının var olup olmadığını kontrol et
+                result = conn.execute(text("SELECT DATABASE()"))
+                current_db = result.scalar()
+                
+                if not current_db:
+                    # Veritabanı yoksa oluştur
+                    conn.execute(text("CREATE DATABASE IF NOT EXISTS sentilyze"))
+                    conn.execute(text("USE sentilyze"))
+                
+                # Tabloları oluştur
+                Base.metadata.create_all(db_engine)
+                conn.commit()
+                
+        except Exception as e:
+            print(f"Database engine initialization error: {e}")
+            return None
+    return db_engine
+
+def get_db_session():
+    global db_session
+    if db_session is None:
+        engine = get_db_engine()
+        if engine:
+            Session = sessionmaker(bind=engine)
+            db_session = Session()
+    return db_session
+
+def close_db_session():
+    global db_session
+    if db_session:
+        db_session.close()
+        db_session = None
+
+def perform_analysis(session, text_entry_id, sentiment, sentiment_score):
+    try:
+        analysis_result = AnalysisResult(
+            text_id=text_entry_id,
+            sentiment=sentiment,
+            sentiment_score=sentiment_score
+        )
+        session.add(analysis_result)
+        session.commit()
+        return analysis_result.result_id
     except Exception as e:
-        print(f"Database initialization error: {e}")
+        print(f"Error performing analysis: {e}")
+        session.rollback()
+        return None
+
+def retrieve_analysis(session, text_entry_id):
+    try:
+        analysis = session.query(AnalysisResult).filter_by(text_id=text_entry_id).first()
+        return analysis
+    except Exception as e:
+        print(f"Error retrieving analysis: {e}")
         return None
 
 class SignUp(QWidget):
@@ -94,9 +194,16 @@ class SignUp(QWidget):
         self.setFixedSize(1600, 900)
         self.setStyleSheet("background-color: #2A2A2A;")
         
-        self.session = init_db()
-        if not self.session:
-            QMessageBox.critical(self, "Error", "Failed to initialize database")
+        try:
+            self.session = get_db_session()
+            if not self.session:
+                QMessageBox.critical(self, "Error", "Failed to initialize database. Please try again.")
+                self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
+                return
+        except Exception as e:
+            print(f"Database initialization error in SignUp: {e}")
+            QMessageBox.critical(self, "Error", f"Database error: {str(e)}")
+            self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
             return
         
         main_layout = QVBoxLayout()
@@ -105,7 +212,8 @@ class SignUp(QWidget):
         main_layout.setSpacing(20)
 
         logo = QLabel()
-        logo_pixmap = QPixmap("icons\logo.png")
+        logo_path = get_resource_path("icons/logo.png")
+        logo_pixmap = QPixmap(logo_path)
         logo.setPixmap(logo_pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         logo.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(logo, alignment=Qt.AlignCenter)
@@ -174,13 +282,13 @@ class SignUp(QWidget):
             return
 
         try:
-            self.session.begin()
-            
+            # Önce mevcut kullanıcıyı kontrol et
             existing_user = self.session.query(User).filter_by(email=email).first()
             if existing_user:
                 QMessageBox.warning(self, "Error", "Email already exists")
                 return
 
+            # Yeni kullanıcı oluştur
             new_user = User(
                 name=name,
                 surname=surname,
@@ -190,6 +298,7 @@ class SignUp(QWidget):
             self.session.add(new_user)
             self.session.commit()
 
+            # Kullanıcının oluşturulduğunu doğrula
             user = self.session.query(User).filter_by(email=email).first()
             if user:
                 print(f"User created successfully: {user.name} {user.surname}")
@@ -205,7 +314,13 @@ class SignUp(QWidget):
             QMessageBox.warning(self, "Error", f"An error occurred: {str(e)}")
 
     def go_back(self):
-        self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
+        try:
+            if self.session:
+                self.session.close()
+            self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
+        except Exception as e:
+            print(f"Error during go_back: {e}")
+            self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
 
 class Login(QWidget):
     def __init__(self):
@@ -214,7 +329,7 @@ class Login(QWidget):
         self.setFixedSize(1600, 900)
         self.setStyleSheet("background-color: #2A2A2A;")
         
-        self.session = init_db()
+        self.session = get_db_session()
         if not self.session:
             QMessageBox.critical(self, "Error", "Failed to initialize database")
             return
@@ -225,7 +340,8 @@ class Login(QWidget):
         main_layout.setSpacing(20)
 
         logo = QLabel()
-        logo_pixmap = QPixmap("icons\logo.png")
+        logo_path = get_resource_path("icons/logo.png")
+        logo_pixmap = QPixmap(logo_path)
         logo.setPixmap(logo_pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         logo.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(logo, alignment=Qt.AlignCenter)
@@ -277,9 +393,14 @@ class Login(QWidget):
         try:
             user = self.session.query(User).filter_by(email=email, password=password).first()
             if user:
+                # Create session log
+                session_log = SessionLog(user_id=user.id)
+                self.session.add(session_log)
+                self.session.commit()
+                
                 print(f"User logged in successfully: {user.name} {user.surname}")
                 QMessageBox.information(self, "Success", "Login successful!")
-                self.parent().setCentralWidget(HomePage(user.name, user.surname, user.email, self.session, self.window()))
+                self.parent().setCentralWidget(HomePage(user.name, user.surname, user.email, self.session, mainwindow=self.window(), session_log_id=session_log.id))
             else:
                 print(f"Login failed for email: {email}")
                 QMessageBox.warning(self, "Error", "Invalid email or password")
@@ -302,7 +423,8 @@ class FirstPage(QWidget):
         main_layout.setSpacing(0)
         main_layout.setAlignment(Qt.AlignCenter)
         logo = QLabel()
-        logo_pixmap = QPixmap("icons\logo.png")
+        logo_path = get_resource_path("icons/logo.png")
+        logo_pixmap = QPixmap(logo_path)
         logo.setPixmap(logo_pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         logo.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(logo, alignment=Qt.AlignCenter)
@@ -406,7 +528,7 @@ class ProfilePage(QWidget):
         self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
 
     def go_back(self):
-        self.parent().setCentralWidget(HomePage(self.user_name, self.user_surname, self.user_email, self.session, self.window()))
+        self.parent().setCentralWidget(HomePage(self.user_name, self.user_surname, self.user_email, self.session, mainwindow=self.window()))
 
     def update_language(self, lang):
         self.layout().itemAt(0).widget().setText(tr('PROFILE', lang))
@@ -422,6 +544,10 @@ class SettingsPage(QWidget):
         self.mainwindow = mainwindow
         self.theme = mainwindow.theme if mainwindow else 'dark'
         self.language = mainwindow.language if mainwindow else 'en'
+        self.user_name = mainwindow.user_name if mainwindow else "User"
+        self.user_surname = mainwindow.user_surname if mainwindow else ""
+        self.user_email = mainwindow.user_email if mainwindow else ""
+        self.session = mainwindow.session if mainwindow else None
         main_layout = QVBoxLayout()
         main_layout.setAlignment(Qt.AlignTop)
         main_layout.setContentsMargins(30, 30, 30, 30)
@@ -536,17 +662,16 @@ class SettingsPage(QWidget):
 
     def update_theme(self, theme):
         self.theme = theme
-        self.setStyleSheet("background-color: #2A2A2A;" if theme == 'dark' else "background-color: #F4F4F4;")
-        self.title.setStyleSheet("color: #fff;" if theme=='dark' else "color: #222;")
+        bg_color = "#2A2A2A" if theme == 'dark' else "#F4F4F4"
+        text_color = "#fff" if theme == 'dark' else "#232323"
+        self.setStyleSheet(f"background-color: {bg_color};")
+        self.title.setStyleSheet(f"color: {text_color};")
         self.theme_label.setStyleSheet("background-color: #ddd; color: #222; padding: 4px 16px;")
         self.lang_label.setStyleSheet("background-color: #ddd; color: #222; padding: 4px 16px;")
         self.del_history_btn.setStyleSheet("background-color: #ddd; color: #222; border: none; padding: 8px;")
         self.del_feedback_btn.setStyleSheet("background-color: #ddd; color: #222; border: none; padding: 8px;")
         self.back_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 24px; border: none; padding: 8px;")
-        self.dark_radio.setStyleSheet("color: #fff;" if theme=='dark' else "color: #222;")
-        self.light_radio.setStyleSheet("color: #fff;" if theme=='dark' else "color: #222;")
-        self.tr_radio.setStyleSheet("color: #fff;" if theme=='dark' else "color: #222;")
-        self.en_radio.setStyleSheet("color: #fff;" if theme=='dark' else "color: #222;")
+        self.update_radio_colors(text_color)
 
     def update_language(self, lang):
         self.title.setText(tr('SETTINGS', lang))
@@ -560,20 +685,33 @@ class SettingsPage(QWidget):
 
     def go_back(self):
         if self.mainwindow:
-            self.mainwindow.setCentralWidget(HomePage(self.mainwindow.user_name, self.mainwindow.user_surname, self.mainwindow.user_email, self.mainwindow.session, self.mainwindow))
+            self.mainwindow.setCentralWidget(HomePage(
+                user_name=self.mainwindow.user_name,
+                user_surname=self.mainwindow.user_surname,
+                user_email=self.mainwindow.user_email,
+                session=self.mainwindow.session,
+                mainwindow=self.mainwindow
+            ))
         else:
             self.parent().setCentralWidget(SettingsPage())
 
 class HomePage(QWidget):
-    def __init__(self, user_name="User", user_surname="", user_email="", session=None, mainwindow=None):
+    def __init__(self, user_name="User", user_surname="", user_email="", session=None, mainwindow=None, session_log_id=None):
         super().__init__()
         self.user_name = user_name
         self.user_surname = user_surname
         self.user_email = user_email
         self.session = session
         self.mainwindow = mainwindow
+        self.session_log_id = session_log_id
         self.language = mainwindow.language if mainwindow else 'en'
         self.theme = mainwindow.theme if mainwindow else 'dark'
+        
+        # Kullanıcı bilgilerini mainwindow'a aktar
+        if mainwindow:
+            mainwindow.user_name = user_name
+            mainwindow.user_surname = user_surname
+            mainwindow.user_email = user_email
         self.setWindowTitle("Sentilyze - Home")
         self.setStyleSheet("background-color: #2A2A2A;" if self.theme == 'dark' else "background-color: #F4F4F4;")
 
@@ -586,7 +724,8 @@ class HomePage(QWidget):
         left_panel.setSpacing(20)
 
         self.logo = QLabel()
-        logo_pixmap = QPixmap("icons/logo.png")
+        logo_path = get_resource_path("icons/logo.png")
+        logo_pixmap = QPixmap(logo_path)
         self.logo.setPixmap(logo_pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         self.logo.setAlignment(Qt.AlignLeft)
         self.logo.setStyleSheet("background-color: #232323;" if self.theme == 'dark' else "background-color: #F4F4F4;")
@@ -761,99 +900,131 @@ class HomePage(QWidget):
     def send_message(self):
         text = self.text_input.text().strip()
         if text:
-            # Create message container
-            message_container = QWidget()
-            message_layout = QVBoxLayout()
-            message_layout.setContentsMargins(0, 0, 0, 20)
-            message_layout.setSpacing(10)
+            try:
+                # Get user from database
+                user = self.session.query(User).filter_by(email=self.user_email).first()
+                if not user:
+                    print(f"User not found in database: {self.user_email}")
+                    QMessageBox.warning(self, "Error", "User session expired. Please login again.")
+                    self.logout()
+                    return
 
-            # User message
-            msg_widget = QWidget()
-            msg_layout = QHBoxLayout()
-            msg_layout.setContentsMargins(0, 0, 0, 0)
-            msg_layout.setSpacing(10)
-            first_letter = self.user_name[0].upper() if self.user_name else "U"
-            avatar = QLabel(first_letter)
-            avatar.setFixedSize(40, 40)
-            avatar.setAlignment(Qt.AlignCenter)
-            avatar.setStyleSheet("background-color: #888; color: #222; font-size: 20px; border-radius: 20px;")
-            msg_layout.addWidget(avatar)
-            msg = QLabel(text)
-            msg.setWordWrap(True)
-            if self.theme == 'dark':
-                msg.setStyleSheet("color: #fff; font-size: 20px; background: transparent;")
-            else:
-                msg.setStyleSheet("color: #232323; font-size: 20px; background: transparent;")
-            msg_layout.addWidget(msg)
-            msg_widget.setLayout(msg_layout)
-            message_layout.addWidget(msg_widget)
+                # Create text entry
+                text_entry = TextEntry(
+                    user_id=user.id,
+                    text=text,
+                    language=self.detect_lang(text)
+                )
+                self.session.add(text_entry)
+                self.session.commit()
 
-            # Analyzing widget (bar.png and text)
-            analyzing_widget = QWidget()
-            analyzing_layout = QVBoxLayout()
-            analyzing_layout.setContentsMargins(50, 0, 0, 0)
-            analyzing_layout.setSpacing(5)
-            bar_logo = QLabel()
-            bar_pixmap = QPixmap("icons/bar.png")
-            bar_logo.setPixmap(bar_pixmap.scaled(120, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            bar_logo.setAlignment(Qt.AlignCenter)
-            analyzing_layout.addWidget(bar_logo, alignment=Qt.AlignCenter)
-            analyzing_label = QLabel("Text is analyzing...")
-            analyzing_label.setStyleSheet("color: #fff; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #232323; font-size: 18px; font-weight: bold;")
-            analyzing_label.setAlignment(Qt.AlignCenter)
-            analyzing_layout.addWidget(analyzing_label, alignment=Qt.AlignCenter)
-            analyzing_widget.setLayout(analyzing_layout)
-            message_layout.addWidget(analyzing_widget)
-            message_container.setLayout(message_layout)
-            self.chat_box.addWidget(message_container)
-            self.text_input.clear()
-            # Scroll to bottom after adding new message
-            QTimer.singleShot(100, lambda: self.chat_scroll.verticalScrollBar().setValue(self.chat_scroll.verticalScrollBar().maximum()))
+                # Create message container
+                message_container = QWidget()
+                message_layout = QVBoxLayout()
+                message_layout.setContentsMargins(0, 0, 0, 20)
+                message_layout.setSpacing(10)
 
-            def show_result():
-                # Remove analyzing widget
-                analyzing_widget.setParent(None)
-                lang = self.detect_lang(text)
-                label, score, explanation = self.analyze_sentiment_api(text, lang)
-                result_widget = QWidget()
-                result_layout = QVBoxLayout()
-                result_layout.setContentsMargins(50, 0, 0, 0)
-                result_layout.setSpacing(5)
-                # Logo
-                logo_label = QLabel()
-                logo_pixmap = QPixmap("icons/logo.png")
-                logo_label.setPixmap(logo_pixmap.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-                logo_label.setAlignment(Qt.AlignLeft)
-                result_layout.addWidget(logo_label, alignment=Qt.AlignLeft)
-                # Sentiment label with score
-                if label == "error":
-                    sentiment_label = QLabel("Sunucuya ulaşılamıyor veya analiz yapılamadı.")
-                    sentiment_label.setStyleSheet("color: #ff5555; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #b00020; font-size: 18px; font-weight: bold;")
-                    print(f"API error: label=error, score={score}, explanation={explanation}")
+                # User message
+                msg_widget = QWidget()
+                msg_layout = QHBoxLayout()
+                msg_layout.setContentsMargins(0, 0, 0, 0)
+                msg_layout.setSpacing(10)
+                first_letter = self.user_name[0].upper() if self.user_name else "U"
+                avatar = QLabel(first_letter)
+                avatar.setFixedSize(40, 40)
+                avatar.setAlignment(Qt.AlignCenter)
+                avatar.setStyleSheet("background-color: #888; color: #222; font-size: 20px; border-radius: 20px;")
+                msg_layout.addWidget(avatar)
+                msg = QLabel(text)
+                msg.setWordWrap(True)
+                if self.theme == 'dark':
+                    msg.setStyleSheet("color: #fff; font-size: 20px; background: transparent;")
                 else:
-                    sentiment_label = QLabel(f"{label.upper()} ({score:.2f})")
-                    sentiment_label.setStyleSheet("color: #fff; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #232323; font-size: 18px; font-weight: bold;")
-                result_layout.addWidget(sentiment_label)
-                # Explanation
-                if explanation:
-                    explanation_label = QLabel(explanation)
-                    explanation_label.setWordWrap(True)
-                    explanation_label.setStyleSheet("color: #fff; font-size: 16px;" if self.theme == 'dark' else "color: #232323; font-size: 16px;")
-                    result_layout.addWidget(explanation_label)
-                result_widget.setLayout(result_layout)
-                message_layout.addWidget(result_widget)
-                message_container.setLayout(message_layout)
-            # Simulate analysis delay (1 second)
-            QTimer.singleShot(1000, show_result)
+                    msg.setStyleSheet("color: #232323; font-size: 20px; background: transparent;")
+                msg_layout.addWidget(msg)
+                msg_widget.setLayout(msg_layout)
+                message_layout.addWidget(msg_widget)
 
-            # Add to history
-            history_btn = QPushButton(text[:30] + ("..." if len(text) > 30 else ""))
-            if self.theme == 'dark':
-                history_btn.setStyleSheet("background-color: #444; color: #fff; border:none; text-align:left; padding:8px; font-size:16px;")
-            else:
-                history_btn.setStyleSheet("background-color: #E0E0E0; color: #232323; border:none; text-align:left; padding:8px; font-size:16px;")
-            history_btn.setFixedWidth(180)
-            self.history_list.addWidget(history_btn)
+                # Analyzing widget
+                analyzing_widget = QWidget()
+                analyzing_layout = QVBoxLayout()
+                analyzing_layout.setContentsMargins(50, 0, 0, 0)
+                analyzing_layout.setSpacing(5)
+                bar_logo = QLabel()
+                bar_pixmap = QPixmap("icons/bar.png")
+                bar_logo.setPixmap(bar_pixmap.scaled(120, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                bar_logo.setAlignment(Qt.AlignCenter)
+                analyzing_layout.addWidget(bar_logo, alignment=Qt.AlignCenter)
+                analyzing_label = QLabel("Text is analyzing...")
+                analyzing_label.setStyleSheet("color: #fff; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #232323; font-size: 18px; font-weight: bold;")
+                analyzing_label.setAlignment(Qt.AlignCenter)
+                analyzing_layout.addWidget(analyzing_label, alignment=Qt.AlignCenter)
+                analyzing_widget.setLayout(analyzing_layout)
+                message_layout.addWidget(analyzing_widget)
+                message_container.setLayout(message_layout)
+                self.chat_box.addWidget(message_container)
+                self.text_input.clear()
+                QTimer.singleShot(100, lambda: self.chat_scroll.verticalScrollBar().setValue(self.chat_scroll.verticalScrollBar().maximum()))
+
+                def show_result():
+                    try:
+                        # Remove analyzing widget
+                        analyzing_widget.setParent(None)
+                        lang = self.detect_lang(text)
+                        label, score, explanation = self.analyze_sentiment_api(text, lang)
+                        
+                        # Save analysis result
+                        perform_analysis(self.session, text_entry.id, label, score)
+
+                        result_widget = QWidget()
+                        result_layout = QVBoxLayout()
+                        result_layout.setContentsMargins(50, 0, 0, 0)
+                        result_layout.setSpacing(5)
+                        # Logo
+                        logo_label = QLabel()
+                        logo_pixmap = QPixmap("icons/logo.png")
+                        logo_label.setPixmap(logo_pixmap.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                        logo_label.setAlignment(Qt.AlignLeft)
+                        result_layout.addWidget(logo_label, alignment=Qt.AlignLeft)
+                        # Sentiment label with score
+                        if label == "error":
+                            sentiment_label = QLabel("Sunucuya ulaşılamıyor veya analiz yapılamadı.")
+                            sentiment_label.setStyleSheet("color: #ff5555; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #b00020; font-size: 18px; font-weight: bold;")
+                            print(f"API error: label=error, score={score}, explanation={explanation}")
+                        else:
+                            sentiment_label = QLabel(f"{label.upper()} ({score:.2f})")
+                            sentiment_label.setStyleSheet("color: #fff; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #232323; font-size: 18px; font-weight: bold;")
+                        result_layout.addWidget(sentiment_label)
+                        # Explanation
+                        if explanation:
+                            explanation_label = QLabel(explanation)
+                            explanation_label.setWordWrap(True)
+                            explanation_label.setStyleSheet("color: #fff; font-size: 16px;" if self.theme == 'dark' else "color: #232323; font-size: 16px;")
+                            result_layout.addWidget(explanation_label)
+                        result_widget.setLayout(result_layout)
+                        message_layout.addWidget(result_widget)
+                        message_container.setLayout(message_layout)
+                    except Exception as e:
+                        print(f"Error during analysis: {e}")
+                        QMessageBox.warning(self, "Error", f"Analysis error: {str(e)}")
+
+                # Simulate analysis delay (1 second)
+                QTimer.singleShot(1000, show_result)
+
+                # Add to history
+                history_btn = QPushButton(text[:30] + ("..." if len(text) > 30 else ""))
+                if self.theme == 'dark':
+                    history_btn.setStyleSheet("background-color: #444; color: #fff; border:none; text-align:left; padding:8px; font-size:16px;")
+                else:
+                    history_btn.setStyleSheet("background-color: #E0E0E0; color: #232323; border:none; text-align:left; padding:8px; font-size:16px;")
+                history_btn.setFixedWidth(180)
+                self.history_list.addWidget(history_btn)
+
+            except Exception as e:
+                print(f"Error during send_message: {e}")
+                QMessageBox.warning(self, "Error", f"An error occurred: {str(e)}")
+                if "User session expired" in str(e):
+                    self.logout()
 
     def show_profile_menu(self):
         try:
@@ -874,11 +1045,12 @@ class HomePage(QWidget):
         self.parent().setCentralWidget(ProfilePage(self.user_name, self.user_surname, self.user_email, self.session, self.language))
 
     def goto_settings(self):
-        mainwindow = self.window()
-        print('DEBUG: mainwindow =', mainwindow)
-        print('DEBUG: is QMainWindow?', isinstance(mainwindow, QMainWindow))
-        if isinstance(mainwindow, QMainWindow):
-            mainwindow.setCentralWidget(SettingsPage(mainwindow))
+        if self.mainwindow and isinstance(self.mainwindow, QMainWindow):
+            # Kullanıcı bilgilerini mainwindow'a aktar
+            self.mainwindow.user_name = self.user_name
+            self.mainwindow.user_surname = self.user_surname
+            self.mainwindow.user_email = self.user_email
+            self.mainwindow.setCentralWidget(SettingsPage(self.mainwindow))
         else:
             print('DEBUG: mainwindow is not QMainWindow, cannot open SettingsPage')
 
@@ -901,12 +1073,25 @@ class HomePage(QWidget):
 
     def update_theme(self, theme):
         self.theme = theme
-        self.setStyleSheet("background-color: #2A2A2A;" if theme == 'dark' else "background-color: #F4F4F4;")
-        self.logo.setStyleSheet("background-color: #232323;" if theme == 'dark' else "background-color: #F4F4F4;")
-        self.sentilyze_label.setStyleSheet("color: #fff; background-color: #232323;" if theme == 'dark' else "color: #232323; background-color: #F4F4F4;")
-        self.history_title.setStyleSheet("color: #fff; background-color: #232323;" if theme == 'dark' else "color: #232323; background-color: #F4F4F4;")
-        self.text_input.setStyleSheet("background-color: #444; color: #fff; font-size: 18px; border-radius: 4px; padding: 12px;" if theme == 'dark' else "background-color: #E0E0E0; color: #232323; font-size: 18px; border-radius: 4px; padding: 12px;")
-        self.analyze_btn.setStyleSheet("background-color: #757575; color: #fff; font-size: 18px; border-radius: 4px;" if theme == 'dark' else "background-color: #B0B0B0; color: #232323; font-size: 18px; border-radius: 4px;")
+        bg_color = "#2A2A2A" if theme == 'dark' else "#F4F4F4"
+        panel_bg = "#232323" if theme == 'dark' else "#F4F4F4"
+        text_color = "#fff" if theme == 'dark' else "#232323"
+        self.setStyleSheet(f"background-color: {bg_color};")
+        self.logo.setStyleSheet("background-color: transparent;")  # Logo arka planı transparan
+        self.sentilyze_label.setStyleSheet(f"color: {text_color}; background-color: {panel_bg};")
+        self.history_title.setStyleSheet(f"color: {text_color}; background-color: {panel_bg};")
+        self.history_widget.setStyleSheet(f"background-color: {panel_bg};")  # Geçmiş kutusu
+        self.chat_box_widget.setStyleSheet(f"background-color: {bg_color};")  # Sohbet kutusu
+        self.text_input.setStyleSheet(
+            "background-color: #444; color: #fff; font-size: 18px; border-radius: 4px; padding: 12px;"
+            if theme == 'dark'
+            else "background-color: #E0E0E0; color: #232323; font-size: 18px; border-radius: 4px; padding: 12px;"
+        )
+        self.analyze_btn.setStyleSheet(
+            "background-color: #757575; color: #fff; font-size: 18px; border-radius: 4px;"
+            if theme == 'dark'
+            else "background-color: #B0B0B0; color: #232323; font-size: 18px; border-radius: 4px;"
+        )
         for i in range(self.history_list.count()):
             btn = self.history_list.itemAt(i).widget()
             if btn:
@@ -916,6 +1101,15 @@ class HomePage(QWidget):
                     btn.setStyleSheet("background-color: #E0E0E0; color: #232323; border:none; text-align:left; padding:8px; font-size:16px;")
 
     def logout(self):
+        if self.session_log_id:
+            try:
+                session_log = self.session.query(SessionLog).get(self.session_log_id)
+                if session_log:
+                    session_log.logout_time = datetime.now()
+                    self.session.commit()
+            except Exception as e:
+                print(f"Error updating session log: {e}")
+        
         self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
 
 class MainWindow(QMainWindow):
@@ -925,11 +1119,22 @@ class MainWindow(QMainWindow):
         self.setFixedSize(1600,900)
         self.theme = 'dark'
         self.language = 'en'
-        self.session = None
+        
+        # Veritabanı bağlantısını başlat
+        try:
+            self.session = get_db_session()
+            if not self.session:
+                QMessageBox.critical(self, "Error", "Failed to initialize database. Please restart the application.")
+                sys.exit(1)
+        except Exception as e:
+            print(f"Database initialization error in MainWindow: {e}")
+            QMessageBox.critical(self, "Error", f"Database error: {str(e)}")
+            sys.exit(1)
+            
         self.user_name = "User"
         self.user_surname = ""
         self.user_email = ""
-        self.setWindowIcon(QIcon("icons/logo.png"))
+        self.setWindowIcon(QIcon(get_resource_path("icons/logo.png")))
         self.setCentralWidget(FirstPage(mainwindow=self))
         self.apply_theme()
 
@@ -952,6 +1157,27 @@ class MainWindow(QMainWindow):
         else:
             self.setStyleSheet("background-color: #676767;")
 
+    def closeEvent(self, event):
+        """Uygulama kapatılırken veritabanı bağlantısını kapat"""
+        close_db_session()
+        event.accept()
+
+    def setCentralWidget(self, widget):
+        """Merkez widget değiştiğinde veritabanı bağlantısını ve kullanıcı bilgilerini koru"""
+        if hasattr(self, 'session'):
+            widget.session = self.session
+        if hasattr(self, 'user_name'):
+            widget.user_name = self.user_name
+        if hasattr(self, 'user_surname'):
+            widget.user_surname = self.user_surname
+        if hasattr(self, 'user_email'):
+            widget.user_email = self.user_email
+        if hasattr(self, 'theme'):
+            widget.theme = self.theme
+        if hasattr(self, 'language'):
+            widget.language = self.language
+        super().setCentralWidget(widget)
+
 def main():
     app = QApplication(sys.argv)
     window = MainWindow()
@@ -961,10 +1187,9 @@ def main():
 if __name__ == "__main__":
     main()
 
-    // Yapılacaklar
-    //Tablolara özel sınıf oluşturulacak ve fonksiyonları eklenecek
-    //Tabloların içerikleri veritabanına gidecek
-    // Feedback eklenecek
-    // AI eklenecek
-    // Settings kısmına notification eklenecek
-    
+    # // Yapılacaklar
+  #  //Tablolara özel sınıf oluşturulacak ve fonksiyonları eklenecek
+    # //Tabloların içerikleri veritabanına gidecek
+   # #  // Feedback eklenecek
+   # // AI eklenecek
+   #  // Settings kısmına notification eklenecek 
