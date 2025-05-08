@@ -467,12 +467,12 @@ class ProfilePage(QWidget):
         self.user_email = user_email
         self.session = session
         self.language = language
-        self.setStyleSheet("background-color: #2A2A2A;")
+        self.setStyleSheet("background: none;")
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
         title = QLabel(tr('PROFILE', self.language))
         title.setFont(QFont("Century Gothic", 32))
-        title.setStyleSheet("color: #fff;")
+        title.setStyleSheet("color: #fff; background: none;" if self.language=='en' else "color: #fff; background: none;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title, alignment=Qt.AlignCenter)
         layout.addSpacing(20)
@@ -480,29 +480,29 @@ class ProfilePage(QWidget):
         avatar = QLabel(first_letter)
         avatar.setFixedSize(90, 90)
         avatar.setAlignment(Qt.AlignCenter)
-        avatar.setStyleSheet("background-color: #888; color: #222; font-size: 40px; border-radius: 45px;")
+        avatar.setStyleSheet("background: none; color: #222; font-size: 40px; border-radius: 45px; border: 2px solid #888;")
         layout.addWidget(avatar, alignment=Qt.AlignHCenter)
         layout.addSpacing(20)
         info = QLabel(f"{tr('Name', self.language)} : {self.user_name}\n{tr('Surname', self.language)}: {self.user_surname}\n{tr('Email', self.language)}: {self.user_email}")
         info.setFont(QFont("Century Gothic", 28))
-        info.setStyleSheet("color: #fff;")
+        info.setStyleSheet("color: #fff; background: none;" if self.language=='en' else "color: #fff; background: none;")
         info.setAlignment(Qt.AlignHCenter)
         layout.addWidget(info, alignment=Qt.AlignHCenter)
         layout.addSpacing(30)
         del_btn = QPushButton(tr('Delete Account', self.language))
-        del_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 28px; border: none; padding: 8px;")
+        del_btn.setStyleSheet("background-color: #b00020; color: #fff; font-size: 28px; border: none; border-radius: 8px; padding: 8px 0;")
         del_btn.setFixedWidth(350)
         del_btn.clicked.connect(self.delete_account)
         layout.addWidget(del_btn, alignment=Qt.AlignHCenter)
         layout.addSpacing(10)
         back_btn = QPushButton(tr('Back', self.language))
-        back_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 24px; border: none; padding: 8px;")
+        back_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 24px; border: none; border-radius: 8px; padding: 8px 0;")
         back_btn.setFixedWidth(350)
         back_btn.clicked.connect(self.go_back)
         layout.addWidget(back_btn, alignment=Qt.AlignHCenter)
         layout.addSpacing(10)
         logout_btn = QPushButton(tr('Log out', self.language))
-        logout_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 28px; border: none; padding: 8px;")
+        logout_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 28px; border: none; border-radius: 8px; padding: 8px 0;")
         logout_btn.setFixedWidth(350)
         logout_btn.clicked.connect(self.logout)
         layout.addWidget(logout_btn, alignment=Qt.AlignHCenter)
@@ -553,22 +553,22 @@ class SettingsPage(QWidget):
         main_layout.setContentsMargins(30, 30, 30, 30)
         self.title = QLabel(tr('SETTINGS', self.language))
         self.title.setFont(QFont("Century Gothic", 36))
-        self.title.setStyleSheet("color: #fff;" if self.theme=='dark' else "color: #222;")
+        self.title.setStyleSheet("color: #fff; background: none;" if self.theme=='dark' else "color: #232323; background: none;")
         self.title.setAlignment(Qt.AlignLeft)
         main_layout.addWidget(self.title, alignment=Qt.AlignLeft)
         main_layout.addSpacing(30)
         theme_row = QHBoxLayout()
         self.theme_label = QLabel(tr('Theme Selection', self.language))
         self.theme_label.setFont(QFont("Century Gothic", 28))
-        self.theme_label.setStyleSheet("background-color: #ddd; color: #222; padding: 4px 16px;")
+        self.theme_label.setStyleSheet(f"color: #fff; background: none;" if self.theme=='dark' else "color: #232323; background: none;")
         self.theme_label.setFixedWidth(320)
         theme_row.addWidget(self.theme_label)
         self.dark_radio = QRadioButton(tr('Dark', self.language), self)
         self.dark_radio.setFont(QFont("Century Gothic", 24))
-        self.dark_radio.setStyleSheet("color: #fff;" if self.theme=='dark' else "color: #222;")
+        self.dark_radio.setStyleSheet(f"color: #fff; background: none;" if self.theme=='dark' else "color: #232323; background: none;")
         self.light_radio = QRadioButton(tr('Light', self.language), self)
         self.light_radio.setFont(QFont("Century Gothic", 24))
-        self.light_radio.setStyleSheet("color: #fff;" if self.theme=='dark' else "color: #222;")
+        self.light_radio.setStyleSheet(f"color: #fff; background: none; margin-left: 32px;" if self.theme=='dark' else "color: #232323; background: none; margin-left: 32px;")
         self.theme_group = QButtonGroup(self)
         self.theme_group.addButton(self.dark_radio)
         self.theme_group.addButton(self.light_radio)
@@ -586,15 +586,15 @@ class SettingsPage(QWidget):
         lang_row = QHBoxLayout()
         self.lang_label = QLabel(tr('Language', self.language))
         self.lang_label.setFont(QFont("Century Gothic", 28))
-        self.lang_label.setStyleSheet("background-color: #ddd; color: #222; padding: 4px 16px;")
+        self.lang_label.setStyleSheet(f"color: #fff; background: none;" if self.theme=='dark' else "color: #232323; background: none;")
         self.lang_label.setFixedWidth(320)
         lang_row.addWidget(self.lang_label)
         self.tr_radio = QRadioButton(tr('Turkish', self.language), self)
         self.tr_radio.setFont(QFont("Century Gothic", 24))
-        self.tr_radio.setStyleSheet("color: #fff;" if self.theme=='dark' else "color: #222;")
+        self.tr_radio.setStyleSheet(f"color: #fff; background: none;" if self.theme=='dark' else "color: #232323; background: none;")
         self.en_radio = QRadioButton(tr('English', self.language), self)
         self.en_radio.setFont(QFont("Century Gothic", 24))
-        self.en_radio.setStyleSheet("color: #fff;" if self.theme=='dark' else "color: #222;")
+        self.en_radio.setStyleSheet(f"color: #fff; background: none; margin-left: 32px;" if self.theme=='dark' else "color: #232323; background: none; margin-left: 32px;")
         self.lang_group = QButtonGroup(self)
         self.lang_group.addButton(self.tr_radio)
         self.lang_group.addButton(self.en_radio)
@@ -609,13 +609,13 @@ class SettingsPage(QWidget):
         lang_row.addStretch(1)
         main_layout.addLayout(lang_row)
         self.del_history_btn = QPushButton(tr('Delete History', self.language))
-        self.del_history_btn.setFont(QFont("Century Gothic", 28))
-        self.del_history_btn.setStyleSheet("background-color: #ddd; color: #222; border: none; padding: 8px;")
-        self.del_history_btn.setFixedWidth(350)
+        self.del_history_btn.setFont(QFont("Century Gothic", 22))
+        self.del_history_btn.setStyleSheet("background-color: #b00020; color: #fff; border: none; padding: 12px 18px; border-radius: 8px; min-width: 220px; font-weight: 600;")
+        self.del_history_btn.setMinimumWidth(220)
         self.del_feedback_btn = QPushButton(tr('Delete Feedback', self.language))
-        self.del_feedback_btn.setFont(QFont("Century Gothic", 28))
-        self.del_feedback_btn.setStyleSheet("background-color: #ddd; color: #222; border: none; padding: 8px;")
-        self.del_feedback_btn.setFixedWidth(350)
+        self.del_feedback_btn.setFont(QFont("Century Gothic", 22))
+        self.del_feedback_btn.setStyleSheet("background-color: #b00020; color: #fff; border: none; padding: 12px 18px; border-radius: 8px; min-width: 220px; font-weight: 600;")
+        self.del_feedback_btn.setMinimumWidth(220)
         del_row = QHBoxLayout()
         del_row.addWidget(self.del_history_btn)
         del_row.addWidget(self.del_feedback_btn)
@@ -623,7 +623,7 @@ class SettingsPage(QWidget):
         main_layout.addSpacing(30)
         self.back_btn = QPushButton(tr('Back', self.language))
         self.back_btn.setFont(QFont("Century Gothic", 24))
-        self.back_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 24px; border: none; padding: 8px;")
+        self.back_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 24px; border: none; padding: 8px; border-radius: 8px;")
         self.back_btn.setFixedWidth(350)
         self.back_btn.clicked.connect(self.go_back)
         main_layout.addWidget(self.back_btn, alignment=Qt.AlignLeft)
@@ -649,10 +649,11 @@ class SettingsPage(QWidget):
             self.set_theme('light')
 
     def update_radio_colors(self, color):
-        self.dark_radio.setStyleSheet(f"color: {color};")
-        self.light_radio.setStyleSheet(f"color: {color};")
-        self.tr_radio.setStyleSheet(f"color: {color};")
-        self.en_radio.setStyleSheet(f"color: {color};")
+        # Always apply margin-left for alignment
+        self.dark_radio.setStyleSheet(f"color: {color}; background: none; margin-left: 0px;")
+        self.light_radio.setStyleSheet(f"color: {color}; background: none; margin-left: 32px;")
+        self.tr_radio.setStyleSheet(f"color: {color}; background: none; margin-left: 0px;")
+        self.en_radio.setStyleSheet(f"color: {color}; background: none; margin-left: 32px;")
 
     def set_language(self, lang):
         self.language = lang
@@ -664,13 +665,16 @@ class SettingsPage(QWidget):
         self.theme = theme
         bg_color = "#2A2A2A" if theme == 'dark' else "#F4F4F4"
         text_color = "#fff" if theme == 'dark' else "#232323"
+        btn_bg = "#444" if theme == 'dark' else "#F4F4F4"
+        btn_text = "#fff" if theme == 'dark' else "#232323"
+        accent_bg = "#757575" if theme == 'dark' else "#B0B0B0"
         self.setStyleSheet(f"background-color: {bg_color};")
-        self.title.setStyleSheet(f"color: {text_color};")
-        self.theme_label.setStyleSheet("background-color: #ddd; color: #222; padding: 4px 16px;")
-        self.lang_label.setStyleSheet("background-color: #ddd; color: #222; padding: 4px 16px;")
-        self.del_history_btn.setStyleSheet("background-color: #ddd; color: #222; border: none; padding: 8px;")
-        self.del_feedback_btn.setStyleSheet("background-color: #ddd; color: #222; border: none; padding: 8px;")
-        self.back_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 24px; border: none; padding: 8px;")
+        self.title.setStyleSheet(f"color: {text_color}; background: none;")
+        self.theme_label.setStyleSheet(f"color: {text_color}; background: none;")
+        self.lang_label.setStyleSheet(f"color: {text_color}; background: none;")
+        self.del_history_btn.setStyleSheet("background-color: #b00020; color: #fff; border: none; padding: 12px 18px; border-radius: 8px; min-width: 220px; font-weight: 600;")
+        self.del_feedback_btn.setStyleSheet("background-color: #b00020; color: #fff; border: none; padding: 12px 18px; border-radius: 8px; min-width: 220px; font-weight: 600;")
+        self.back_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 24px; border: none; padding: 8px; border-radius: 8px;")
         self.update_radio_colors(text_color)
 
     def update_language(self, lang):
@@ -728,12 +732,12 @@ class HomePage(QWidget):
         logo_pixmap = QPixmap(logo_path)
         self.logo.setPixmap(logo_pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         self.logo.setAlignment(Qt.AlignLeft)
-        self.logo.setStyleSheet("background-color: #232323;" if self.theme == 'dark' else "background-color: #F4F4F4;")
+        self.logo.setStyleSheet("background: none;")
         left_panel.addWidget(self.logo, alignment=Qt.AlignLeft)
 
         self.sentilyze_label = QLabel("Sentilyze")
         self.sentilyze_label.setFont(QFont("Century Gothic", 18))
-        self.sentilyze_label.setStyleSheet("color: #fff; background-color: #232323;" if self.theme == 'dark' else "color: #232323; background-color: #F4F4F4;")
+        self.sentilyze_label.setStyleSheet("color: #fff; background: none;" if self.theme == 'dark' else "color: #232323; background: none;")
         self.sentilyze_label.setAlignment(Qt.AlignLeft)
         left_panel.addWidget(self.sentilyze_label, alignment=Qt.AlignLeft)
 
@@ -741,7 +745,7 @@ class HomePage(QWidget):
 
         self.history_title = QLabel(tr('History', self.language) + "  <span style='font-size:16px;'>&#9432;</span>")
         self.history_title.setFont(QFont("Century Gothic", 16))
-        self.history_title.setStyleSheet("color: #fff; background-color: #232323;" if self.theme == 'dark' else "color: #232323; background-color: #F4F4F4;")
+        self.history_title.setStyleSheet("color: #fff; background: none;" if self.theme == 'dark' else "color: #232323; background: none;")
         left_panel.addWidget(self.history_title, alignment=Qt.AlignLeft)
 
         self.history_widget = QWidget()
@@ -755,6 +759,10 @@ class HomePage(QWidget):
         self.history_scroll.setWidget(self.history_widget)
         self.history_scroll.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         left_panel.addWidget(self.history_scroll)
+
+        # Geçmiş kayıtlarını yükle
+        self.load_history()
+
         left_panel.addStretch(1)
 
         center_panel = QVBoxLayout()
@@ -772,40 +780,6 @@ class HomePage(QWidget):
         self.chat_scroll.setWidget(self.chat_box_widget)
         self.chat_scroll.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         center_panel.addWidget(self.chat_scroll, stretch=1)
-        center_panel.addSpacing(30)
-
-        self.analyze_widget = QWidget()
-        analyze_layout = QVBoxLayout()
-        analyze_layout.setAlignment(Qt.AlignCenter)
-        analyze_layout.setSpacing(10)
-
-        analyze_logo = QLabel()
-        analyze_logo.setPixmap(logo_pixmap.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        analyze_logo.setAlignment(Qt.AlignCenter)
-        analyze_layout.addWidget(analyze_logo, alignment=Qt.AlignCenter)
-
-        analyzing_label = QLabel("Text is analyzing...")
-        analyzing_label.setStyleSheet("color: #fff; font-size: 20px;")
-        analyzing_label.setAlignment(Qt.AlignCenter)
-        analyze_layout.addWidget(analyzing_label, alignment=Qt.AlignCenter)
-
-        emoji_row = QHBoxLayout()
-        for color in ["#E74C3C", "#F1C40F", "#27AE60"]:
-            emoji = QLabel()
-            emoji.setFixedSize(40, 40)
-            emoji.setStyleSheet(f"background: {color}; border-radius: 20px;")
-            emoji_row.addWidget(emoji)
-        analyze_layout.addLayout(emoji_row)
-
-        result_label = QLabel("")
-        result_label.setStyleSheet("color: #fff; font-size: 18px;")
-        result_label.setAlignment(Qt.AlignCenter)
-        analyze_layout.addWidget(result_label, alignment=Qt.AlignCenter)
-
-        self.analyze_widget.setLayout(analyze_layout)
-        self.analyze_widget.hide()
-        center_panel.addWidget(self.analyze_widget)
-        center_panel.addStretch(1)
 
         input_row = QHBoxLayout()
         self.text_input = QLineEdit()
@@ -850,21 +824,13 @@ class HomePage(QWidget):
         logout_btn = QPushButton("Log Out")
         logout_btn.setStyleSheet("background: none; color: #fff; font-size: 16px; padding: 8px 16px; text-align:left;")
         logout_btn.setCursor(Qt.PointingHandCursor)
+        logout_btn.clicked.connect(self.logout)
         menu_layout.addWidget(logout_btn)
         self.profile_menu.setLayout(menu_layout)
         self.profile_menu.hide()
         right_panel.addWidget(self.profile_menu, alignment=Qt.AlignRight)
 
         right_panel.addStretch(1)
-
-        self.ai_bot_btn = QPushButton()
-        ai_pixmap = QPixmap("icons/ai.png")
-        self.ai_bot_btn.setIcon(QIcon(ai_pixmap))
-        self.ai_bot_btn.setIconSize(ai_pixmap.size())
-        self.ai_bot_btn.setFixedSize(50, 50)
-        self.ai_bot_btn.setStyleSheet("background: none; border: none;")
-        self.ai_bot_btn.setCursor(Qt.PointingHandCursor)
-        right_panel.addWidget(self.ai_bot_btn, alignment=Qt.AlignRight)
 
         main_layout.addLayout(left_panel, 2)
         main_layout.addSpacing(20)
@@ -875,27 +841,35 @@ class HomePage(QWidget):
         self.setLayout(main_layout)
         self.update_language(self.language)
 
-    def detect_lang(self, text):
-        turkish_chars = "çğıöşü"
-        for ch in turkish_chars:
-            if ch in text.lower():
-                return "tr"
-        return "en"
-
-    def analyze_sentiment_api(self, text, lang="en"):
+    def load_history(self):
         try:
-            response = requests.post(
-                "http://127.0.0.1:8000/analyze",
-                json={"text": text, "lang": lang}
-            )
-            if response.ok:
-                data = response.json()
-                return data['label'], data['score'], data.get('explanation', '')
-            else:
-                return "error", 0, ""
+            # Önceki geçmiş kayıtlarını temizle
+            while self.history_list.count():
+                item = self.history_list.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+
+            # Kullanıcının geçmiş kayıtlarını veritabanından al
+            user = self.session.query(User).filter_by(email=self.user_email).first()
+            if user:
+                text_entries = self.session.query(TextEntry).filter_by(user_id=user.id).order_by(TextEntry.created_at.desc()).all()
+                
+                for entry in text_entries:
+                    history_btn = QPushButton(entry.text[:30] + ("..." if len(entry.text) > 30 else ""))
+                    if self.theme == 'dark':
+                        history_btn.setStyleSheet("background-color: #444; color: #fff; border:none; text-align:left; padding:8px; font-size:16px;")
+                    else:
+                        history_btn.setStyleSheet("background-color: #E0E0E0; color: #232323; border:none; text-align:left; padding:8px; font-size:16px;")
+                    history_btn.setFixedWidth(180)
+                    history_btn.clicked.connect(lambda checked, text=entry.text: self.show_history_item(text))
+                    self.history_list.addWidget(history_btn)
+
         except Exception as e:
-            print(f"API error: {e}")
-            return "error", 0, ""
+            print(f"Error loading history: {e}")
+
+    def show_history_item(self, text):
+        # Geçmiş öğesini tıklandığında metin kutusuna yerleştir
+        self.text_input.setText(text)
 
     def send_message(self):
         text = self.text_input.text().strip()
@@ -974,18 +948,27 @@ class HomePage(QWidget):
                         label, score, explanation = self.analyze_sentiment_api(text, lang)
                         
                         # Save analysis result
-                        perform_analysis(self.session, text_entry.id, label, score)
+                        analysis_result = AnalysisResult(
+                            text_id=text_entry.id,
+                            sentiment=label,
+                            sentiment_score=score,
+                            analysis_date=datetime.now()
+                        )
+                        self.session.add(analysis_result)
+                        self.session.commit()
 
                         result_widget = QWidget()
                         result_layout = QVBoxLayout()
                         result_layout.setContentsMargins(50, 0, 0, 0)
                         result_layout.setSpacing(5)
+                        
                         # Logo
                         logo_label = QLabel()
                         logo_pixmap = QPixmap("icons/logo.png")
                         logo_label.setPixmap(logo_pixmap.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))
                         logo_label.setAlignment(Qt.AlignLeft)
                         result_layout.addWidget(logo_label, alignment=Qt.AlignLeft)
+                        
                         # Sentiment label with score
                         if label == "error":
                             sentiment_label = QLabel("Sunucuya ulaşılamıyor veya analiz yapılamadı.")
@@ -995,15 +978,52 @@ class HomePage(QWidget):
                             sentiment_label = QLabel(f"{label.upper()} ({score:.2f})")
                             sentiment_label.setStyleSheet("color: #fff; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #232323; font-size: 18px; font-weight: bold;")
                         result_layout.addWidget(sentiment_label)
+                        
                         # Explanation
                         if explanation:
                             explanation_label = QLabel(explanation)
                             explanation_label.setWordWrap(True)
                             explanation_label.setStyleSheet("color: #fff; font-size: 16px;" if self.theme == 'dark' else "color: #232323; font-size: 16px;")
                             result_layout.addWidget(explanation_label)
+
+                        # Feedback section
+                        feedback_widget = QWidget()
+                        feedback_layout = QVBoxLayout()
+                        feedback_layout.setContentsMargins(0, 10, 0, 0)
+                        
+                        # Add comment input field
+                        comment_input = QLineEdit()
+                        comment_input.setPlaceholderText("Add your comment (optional)")
+                        comment_input.setStyleSheet("background-color: #444; color: #fff; font-size: 16px; border-radius: 4px; padding: 8px;" if self.theme == 'dark' else "background-color: #E0E0E0; color: #232323; font-size: 16px; border-radius: 4px; padding: 8px;")
+                        feedback_layout.addWidget(comment_input)
+                        
+                        rating_widget = QWidget()
+                        rating_layout = QHBoxLayout()
+                        rating_layout.setContentsMargins(0, 5, 0, 0)
+                        
+                        feedback_label = QLabel("Feedback:")
+                        feedback_label.setStyleSheet("color: #fff; font-size: 16px;" if self.theme == 'dark' else "color: #232323; font-size: 16px;")
+                        rating_layout.addWidget(feedback_label)
+                        
+                        for i in range(1, 6):
+                            star_btn = QPushButton("★")
+                            star_btn.setStyleSheet("background: none; color: #888; font-size: 24px;")
+                            star_btn.setCursor(Qt.PointingHandCursor)
+                            star_btn.clicked.connect(lambda checked, rating=i, comment_input=comment_input: self.submit_feedback(text_entry.id, rating, comment_input.text(), comment_input))
+                            rating_layout.addWidget(star_btn)
+                        
+                        rating_widget.setLayout(rating_layout)
+                        feedback_layout.addWidget(rating_widget)
+                        feedback_widget.setLayout(feedback_layout)
+                        result_layout.addWidget(feedback_widget)
+                        
                         result_widget.setLayout(result_layout)
                         message_layout.addWidget(result_widget)
                         message_container.setLayout(message_layout)
+                        
+                        # Update history
+                        self.load_history()
+                        
                     except Exception as e:
                         print(f"Error during analysis: {e}")
                         QMessageBox.warning(self, "Error", f"Analysis error: {str(e)}")
@@ -1011,20 +1031,32 @@ class HomePage(QWidget):
                 # Simulate analysis delay (1 second)
                 QTimer.singleShot(1000, show_result)
 
-                # Add to history
-                history_btn = QPushButton(text[:30] + ("..." if len(text) > 30 else ""))
-                if self.theme == 'dark':
-                    history_btn.setStyleSheet("background-color: #444; color: #fff; border:none; text-align:left; padding:8px; font-size:16px;")
-                else:
-                    history_btn.setStyleSheet("background-color: #E0E0E0; color: #232323; border:none; text-align:left; padding:8px; font-size:16px;")
-                history_btn.setFixedWidth(180)
-                self.history_list.addWidget(history_btn)
-
             except Exception as e:
                 print(f"Error during send_message: {e}")
                 QMessageBox.warning(self, "Error", f"An error occurred: {str(e)}")
                 if "User session expired" in str(e):
                     self.logout()
+
+    def submit_feedback(self, text_id, rating, comment="", comment_input=None):
+        try:
+            user = self.session.query(User).filter_by(email=self.user_email).first()
+            if user:
+                feedback = Feedback(
+                    user_id=user.id,
+                    text_id=text_id,
+                    rating=rating,
+                    feedback_text=comment,
+                    feedback_date=datetime.now()
+                )
+                self.session.add(feedback)
+                self.session.commit()
+                QMessageBox.information(self, "Success", "Feedback submitted successfully!")
+                # Clear the comment input field
+                if comment_input:
+                    comment_input.clear()
+        except Exception as e:
+            print(f"Error submitting feedback: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to submit feedback: {str(e)}")
 
     def show_profile_menu(self):
         try:
@@ -1074,31 +1106,28 @@ class HomePage(QWidget):
     def update_theme(self, theme):
         self.theme = theme
         bg_color = "#2A2A2A" if theme == 'dark' else "#F4F4F4"
-        panel_bg = "#232323" if theme == 'dark' else "#F4F4F4"
         text_color = "#fff" if theme == 'dark' else "#232323"
+        btn_bg = "#444" if theme == 'dark' else "#F4F4F4"
+        btn_text = "#fff" if theme == 'dark' else "#232323"
+        accent_bg = "#757575" if theme == 'dark' else "#B0B0B0"
         self.setStyleSheet(f"background-color: {bg_color};")
-        self.logo.setStyleSheet("background-color: transparent;")  # Logo arka planı transparan
-        self.sentilyze_label.setStyleSheet(f"color: {text_color}; background-color: {panel_bg};")
-        self.history_title.setStyleSheet(f"color: {text_color}; background-color: {panel_bg};")
-        self.history_widget.setStyleSheet(f"background-color: {panel_bg};")  # Geçmiş kutusu
-        self.chat_box_widget.setStyleSheet(f"background-color: {bg_color};")  # Sohbet kutusu
+        self.logo.setStyleSheet("background: none;")
+        self.sentilyze_label.setStyleSheet(f"color: {text_color}; background: none; font-size: 22px; font-weight: 600;")
+        self.history_title.setStyleSheet(f"color: {text_color}; background: none; font-size: 18px; font-weight: 500;")
+        self.history_widget.setStyleSheet("background: none;")
+        self.chat_box_widget.setStyleSheet(f"background: none;")
         self.text_input.setStyleSheet(
-            "background-color: #444; color: #fff; font-size: 18px; border-radius: 4px; padding: 12px;"
-            if theme == 'dark'
-            else "background-color: #E0E0E0; color: #232323; font-size: 18px; border-radius: 4px; padding: 12px;"
+            f"background-color: {btn_bg}; color: {btn_text}; font-size: 18px; border-radius: 8px; padding: 12px; border: none;"
         )
         self.analyze_btn.setStyleSheet(
-            "background-color: #757575; color: #fff; font-size: 18px; border-radius: 4px;"
-            if theme == 'dark'
-            else "background-color: #B0B0B0; color: #232323; font-size: 18px; border-radius: 4px;"
+            f"background-color: {accent_bg}; color: {btn_text}; font-size: 18px; border-radius: 8px; padding: 0 24px; min-width: 120px; border: none;"
         )
         for i in range(self.history_list.count()):
             btn = self.history_list.itemAt(i).widget()
             if btn:
-                if theme == 'dark':
-                    btn.setStyleSheet("background-color: #444; color: #fff; border:none; text-align:left; padding:8px; font-size:16px;")
-                else:
-                    btn.setStyleSheet("background-color: #E0E0E0; color: #232323; border:none; text-align:left; padding:8px; font-size:16px;")
+                btn.setStyleSheet(f"background-color: {btn_bg}; color: {btn_text}; border:none; text-align:left; padding:8px 12px; font-size:16px; border-radius: 8px;")
+                btn.setMinimumHeight(36)
+                btn.setMaximumWidth(180)
 
     def logout(self):
         if self.session_log_id:
@@ -1111,6 +1140,28 @@ class HomePage(QWidget):
                 print(f"Error updating session log: {e}")
         
         self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
+
+    def detect_lang(self, text):
+        turkish_chars = "çğıöşü"
+        for ch in turkish_chars:
+            if ch in text.lower():
+                return "tr"
+        return "en"
+
+    def analyze_sentiment_api(self, text, lang="en"):
+        try:
+            response = requests.post(
+                "http://127.0.0.1:8000/analyze",
+                json={"text": text, "lang": lang}
+            )
+            if response.ok:
+                data = response.json()
+                return data['label'], data['score'], data.get('explanation', '')
+            else:
+                return "error", 0, ""
+        except Exception as e:
+            print(f"API error: {e}")
+            return "error", 0, ""
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -1188,8 +1239,8 @@ if __name__ == "__main__":
     main()
 
     # // Yapılacaklar
-  #  //Tablolara özel sınıf oluşturulacak ve fonksiyonları eklenecek
-    # //Tabloların içerikleri veritabanına gidecek
-   # #  // Feedback eklenecek
-   # // AI eklenecek
-   #  // Settings kısmına notification eklenecek 
+    # // Renk sorunları düzeltilecek
+    # // AI eklenecek
+    # // Sonuca göre emoji barı eklenecek
+    # // Settings kısmına notification eklenecek
+    # // Sonucun doğruluğu test edilecek

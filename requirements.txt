@@ -1,9 +1,12 @@
-PyQt5 
-fastapi
-uvicorn
-sqlalchemy
-pymysql
-bcrypt
-pydantic 
+PyQt5==5.15.9
+fastapi==0.104.1
+uvicorn==0.24.0
+sqlalchemy==2.0.23
+pymysql==1.1.0
+bcrypt==4.0.1
+pydantic==2.5.2
+pydantic[email]
+python-multipart==0.0.6
+requests==2.31.0
 ## pip install fastapi uvicorn
 ## uvicorn api:app --reload for api
