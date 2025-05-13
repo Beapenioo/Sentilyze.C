@@ -397,10 +397,13 @@ class Login(QWidget):
                 session_log = SessionLog(user_id=user.id)
                 self.session.add(session_log)
                 self.session.commit()
-                
+                # Store session_log_id in mainwindow
+                mainwindow = self.parent()
+                if hasattr(mainwindow, 'session_log_id'):
+                    mainwindow.session_log_id = session_log.id
                 print(f"User logged in successfully: {user.name} {user.surname}")
                 QMessageBox.information(self, "Success", "Login successful!")
-                self.parent().setCentralWidget(HomePage(user.name, user.surname, user.email, self.session, mainwindow=self.window(), session_log_id=session_log.id))
+                self.parent().setCentralWidget(HomePage(user.name, user.surname, user.email, self.session, mainwindow=mainwindow, session_log_id=session_log.id))
             else:
                 print(f"Login failed for email: {email}")
                 QMessageBox.warning(self, "Error", "Invalid email or password")
@@ -460,13 +463,15 @@ class FirstPage(QWidget):
         self.login_button.setText(tr('LOGIN', lang) if 'LOGIN' in TRANSLATIONS['en'] else "LOGIN")
 
 class ProfilePage(QWidget):
-    def __init__(self, user_name, user_surname, user_email, session, language='en'):
+    def __init__(self, user_name, user_surname, user_email, session, language='en', session_log_id=None, mainwindow=None):
         super().__init__()
         self.user_name = user_name
         self.user_surname = user_surname
         self.user_email = user_email
         self.session = session
         self.language = language
+        self.session_log_id = session_log_id
+        self.mainwindow = mainwindow
         self.setStyleSheet("background: none;")
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
@@ -480,7 +485,9 @@ class ProfilePage(QWidget):
         avatar = QLabel(first_letter)
         avatar.setFixedSize(90, 90)
         avatar.setAlignment(Qt.AlignCenter)
-        avatar.setStyleSheet("background: none; color: #222; font-size: 40px; border-radius: 45px; border: 2px solid #888;")
+        # Use mainwindow.theme if available, else fallback to dark
+        theme = self.mainwindow.theme if self.mainwindow and hasattr(self.mainwindow, 'theme') else 'dark'
+        avatar.setStyleSheet(f"background: none; color: {'#fff' if theme == 'dark' else '#222'}; font-size: 40px; border-radius: 45px; border: 2px solid #888;")
         layout.addWidget(avatar, alignment=Qt.AlignHCenter)
         layout.addSpacing(20)
         info = QLabel(f"{tr('Name', self.language)} : {self.user_name}\n{tr('Surname', self.language)}: {self.user_surname}\n{tr('Email', self.language)}: {self.user_email}")
@@ -513,10 +520,20 @@ class ProfilePage(QWidget):
         reply = QMessageBox.question(self, 'Delete Account', 'Are you sure?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             try:
-                from main import User
-                self.session.begin()
                 user = self.session.query(User).filter_by(email=self.user_email).first()
                 if user:
+                    # Kullanıcının tüm text_entry id'lerini al
+                    text_ids = [t.id for t in self.session.query(TextEntry).filter_by(user_id=user.id).all()]
+                    if text_ids:
+                        # Önce feedbackleri sil
+                        self.session.query(Feedback).filter(Feedback.text_id.in_(text_ids)).delete(synchronize_session=False)
+                        # Sonra analysis_results sil
+                        self.session.query(AnalysisResult).filter(AnalysisResult.text_id.in_(text_ids)).delete(synchronize_session=False)
+                    # Text_entries sil
+                    self.session.query(TextEntry).filter_by(user_id=user.id).delete(synchronize_session=False)
+                    # SessionLogs sil
+                    self.session.query(SessionLog).filter_by(user_id=user.id).delete(synchronize_session=False)
+                    # En son kullanıcıyı sil
                     self.session.delete(user)
                     self.session.commit()
                 self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
@@ -525,10 +542,20 @@ class ProfilePage(QWidget):
                 QMessageBox.warning(self, "Error", f"An error occurred: {str(e)}")
 
     def logout(self):
-        self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
+        session_log_id = self.session_log_id or (self.mainwindow.session_log_id if self.mainwindow and hasattr(self.mainwindow, 'session_log_id') else None)
+        session = self.session or (self.mainwindow.session if self.mainwindow and hasattr(self.mainwindow, 'session') else None)
+        if session_log_id and session:
+            try:
+                session_log = session.query(SessionLog).get(session_log_id)
+                if session_log:
+                    session_log.logout_time = datetime.now()
+                    session.commit()
+            except Exception as e:
+                print(f"Error updating session log: {e}")
+        self.parent().setCentralWidget(FirstPage(mainwindow=self.mainwindow))
 
     def go_back(self):
-        self.parent().setCentralWidget(HomePage(self.user_name, self.user_surname, self.user_email, self.session, mainwindow=self.window()))
+        self.parent().setCentralWidget(HomePage(self.user_name, self.user_surname, self.user_email, self.session, mainwindow=self.mainwindow))
 
     def update_language(self, lang):
         self.layout().itemAt(0).widget().setText(tr('PROFILE', lang))
@@ -548,6 +575,7 @@ class SettingsPage(QWidget):
         self.user_surname = mainwindow.user_surname if mainwindow else ""
         self.user_email = mainwindow.user_email if mainwindow else ""
         self.session = mainwindow.session if mainwindow else None
+        self.session_log_id = mainwindow.session_log_id if mainwindow and hasattr(mainwindow, 'session_log_id') else None
         main_layout = QVBoxLayout()
         main_layout.setAlignment(Qt.AlignTop)
         main_layout.setContentsMargins(30, 30, 30, 30)
@@ -561,7 +589,7 @@ class SettingsPage(QWidget):
         self.theme_label = QLabel(tr('Theme Selection', self.language))
         self.theme_label.setFont(QFont("Century Gothic", 28))
         self.theme_label.setStyleSheet(f"color: #fff; background: none;" if self.theme=='dark' else "color: #232323; background: none;")
-        self.theme_label.setFixedWidth(320)
+        self.theme_label.setMinimumWidth(420)
         theme_row.addWidget(self.theme_label)
         self.dark_radio = QRadioButton(tr('Dark', self.language), self)
         self.dark_radio.setFont(QFont("Century Gothic", 24))
@@ -578,6 +606,7 @@ class SettingsPage(QWidget):
             self.light_radio.setChecked(True)
         self.dark_radio.toggled.connect(self.set_dark_theme)
         self.light_radio.toggled.connect(self.set_light_theme)
+        theme_row.addSpacing(60)
         theme_row.addWidget(self.dark_radio)
         theme_row.addWidget(self.light_radio)
         theme_row.addStretch(1)
@@ -589,6 +618,7 @@ class SettingsPage(QWidget):
         self.lang_label.setStyleSheet(f"color: #fff; background: none;" if self.theme=='dark' else "color: #232323; background: none;")
         self.lang_label.setFixedWidth(320)
         lang_row.addWidget(self.lang_label)
+        lang_row.addSpacing(60)
         self.tr_radio = QRadioButton(tr('Turkish', self.language), self)
         self.tr_radio.setFont(QFont("Century Gothic", 24))
         self.tr_radio.setStyleSheet(f"color: #fff; background: none;" if self.theme=='dark' else "color: #232323; background: none;")
@@ -612,10 +642,12 @@ class SettingsPage(QWidget):
         self.del_history_btn.setFont(QFont("Century Gothic", 22))
         self.del_history_btn.setStyleSheet("background-color: #b00020; color: #fff; border: none; padding: 12px 18px; border-radius: 8px; min-width: 220px; font-weight: 600;")
         self.del_history_btn.setMinimumWidth(220)
+        self.del_history_btn.clicked.connect(self.delete_history)
         self.del_feedback_btn = QPushButton(tr('Delete Feedback', self.language))
         self.del_feedback_btn.setFont(QFont("Century Gothic", 22))
         self.del_feedback_btn.setStyleSheet("background-color: #b00020; color: #fff; border: none; padding: 12px 18px; border-radius: 8px; min-width: 220px; font-weight: 600;")
         self.del_feedback_btn.setMinimumWidth(220)
+        self.del_feedback_btn.clicked.connect(self.delete_feedback)
         del_row = QHBoxLayout()
         del_row.addWidget(self.del_history_btn)
         del_row.addWidget(self.del_feedback_btn)
@@ -694,10 +726,51 @@ class SettingsPage(QWidget):
                 user_surname=self.mainwindow.user_surname,
                 user_email=self.mainwindow.user_email,
                 session=self.mainwindow.session,
-                mainwindow=self.mainwindow
+                mainwindow=self.mainwindow,
+                session_log_id=self.mainwindow.session_log_id if self.mainwindow and hasattr(self.mainwindow, 'session_log_id') else None
             ))
         else:
             self.parent().setCentralWidget(SettingsPage())
+
+    def delete_history(self):
+        reply = QMessageBox.question(self, tr('Delete History', self.language), tr('Are you sure?', self.language), QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            try:
+                user = self.session.query(User).filter_by(email=self.user_email).first()
+                if user:
+                    # Kullanıcının tüm text_entry id'lerini al
+                    text_ids = [t.id for t in self.session.query(TextEntry).filter_by(user_id=user.id).all()]
+                    if text_ids:
+                        # Önce feedbackleri sil
+                        self.session.query(Feedback).filter(Feedback.text_id.in_(text_ids)).delete(synchronize_session=False)
+                        # Sonra analysis_results sil
+                        self.session.query(AnalysisResult).filter(AnalysisResult.text_id.in_(text_ids)).delete(synchronize_session=False)
+                    # En son text_entries sil
+                    self.session.query(TextEntry).filter_by(user_id=user.id).delete(synchronize_session=False)
+                    self.session.commit()
+                    QMessageBox.information(self, tr('Delete History', self.language), tr('History deleted successfully!', self.language))
+                    if self.mainwindow:
+                        self.mainwindow.setCentralWidget(SettingsPage(self.mainwindow))
+                else:
+                    QMessageBox.warning(self, tr('Delete History', self.language), tr('User not found!', self.language))
+            except Exception as e:
+                self.session.rollback()
+                QMessageBox.warning(self, tr('Delete History', self.language), f"Error: {str(e)}")
+
+    def delete_feedback(self):
+        reply = QMessageBox.question(self, tr('Delete Feedback', self.language), tr('Are you sure?', self.language), QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            try:
+                user = self.session.query(User).filter_by(email=self.user_email).first()
+                if user:
+                    self.session.query(Feedback).filter_by(user_id=user.id).delete(synchronize_session=False)
+                    self.session.commit()
+                    QMessageBox.information(self, tr('Delete Feedback', self.language), tr('Feedback deleted successfully!', self.language))
+                else:
+                    QMessageBox.warning(self, tr('Delete Feedback', self.language), tr('User not found!', self.language))
+            except Exception as e:
+                self.session.rollback()
+                QMessageBox.warning(self, tr('Delete Feedback', self.language), f"Error: {str(e)}")
 
 class HomePage(QWidget):
     def __init__(self, user_name="User", user_surname="", user_email="", session=None, mainwindow=None, session_log_id=None):
@@ -707,7 +780,7 @@ class HomePage(QWidget):
         self.user_email = user_email
         self.session = session
         self.mainwindow = mainwindow
-        self.session_log_id = session_log_id
+        self.session_log_id = session_log_id or (mainwindow.session_log_id if mainwindow and hasattr(mainwindow, 'session_log_id') else None)
         self.language = mainwindow.language if mainwindow else 'en'
         self.theme = mainwindow.theme if mainwindow else 'dark'
         
@@ -716,6 +789,7 @@ class HomePage(QWidget):
             mainwindow.user_name = user_name
             mainwindow.user_surname = user_surname
             mainwindow.user_email = user_email
+            mainwindow.session_log_id = self.session_log_id
         self.setWindowTitle("Sentilyze - Home")
         self.setStyleSheet("background-color: #2A2A2A;" if self.theme == 'dark' else "background-color: #F4F4F4;")
 
@@ -1074,7 +1148,7 @@ class HomePage(QWidget):
             print(f"Profile menu error: {e}")
 
     def goto_profile(self):
-        self.parent().setCentralWidget(ProfilePage(self.user_name, self.user_surname, self.user_email, self.session, self.language))
+        self.parent().setCentralWidget(ProfilePage(self.user_name, self.user_surname, self.user_email, self.session, self.language, self.session_log_id, self.mainwindow))
 
     def goto_settings(self):
         if self.mainwindow and isinstance(self.mainwindow, QMainWindow):
@@ -1130,16 +1204,17 @@ class HomePage(QWidget):
                 btn.setMaximumWidth(180)
 
     def logout(self):
-        if self.session_log_id:
+        session_log_id = self.session_log_id or (self.mainwindow.session_log_id if self.mainwindow and hasattr(self.mainwindow, 'session_log_id') else None)
+        session = self.session or (self.mainwindow.session if self.mainwindow and hasattr(self.mainwindow, 'session') else None)
+        if session_log_id and session:
             try:
-                session_log = self.session.query(SessionLog).get(self.session_log_id)
+                session_log = session.query(SessionLog).get(session_log_id)
                 if session_log:
                     session_log.logout_time = datetime.now()
-                    self.session.commit()
+                    session.commit()
             except Exception as e:
                 print(f"Error updating session log: {e}")
-        
-        self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
+        self.parent().setCentralWidget(FirstPage(mainwindow=self.mainwindow))
 
     def detect_lang(self, text):
         turkish_chars = "çğıöşü"
@@ -1170,7 +1245,7 @@ class MainWindow(QMainWindow):
         self.setFixedSize(1600,900)
         self.theme = 'dark'
         self.language = 'en'
-        
+        self.session_log_id = None  # Always keep this in mainwindow
         # Veritabanı bağlantısını başlat
         try:
             self.session = get_db_session()
@@ -1227,6 +1302,8 @@ class MainWindow(QMainWindow):
             widget.theme = self.theme
         if hasattr(self, 'language'):
             widget.language = self.language
+        if hasattr(self, 'session_log_id'):
+            widget.session_log_id = self.session_log_id
         super().setCentralWidget(widget)
 
 def main():
@@ -1239,7 +1316,6 @@ if __name__ == "__main__":
     main()
 
     # // Yapılacaklar
-    # // Renk sorunları düzeltilecek
     # // AI eklenecek
     # // Sonuca göre emoji barı eklenecek
     # // Settings kısmına notification eklenecek

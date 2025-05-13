@@ -9,4 +9,4 @@ pydantic[email]
 python-multipart==0.0.6
 requests==2.31.0
 ## pip install fastapi uvicorn
-## uvicorn api:app --reload for api
+## uvicorn api:app --reload
