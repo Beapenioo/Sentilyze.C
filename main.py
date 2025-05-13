@@ -1,6 +1,6 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QMessageBox, QHBoxLayout, QRadioButton, QButtonGroup, QScrollArea
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QMessageBox, QHBoxLayout, QRadioButton, QButtonGroup, QScrollArea, QDialog, QTextEdit
+from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import QFont, QPixmap, QIcon
 from sqlalchemy import create_engine, Column, Integer, String, event, ForeignKey, DateTime, Float, Text, text
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -579,6 +579,22 @@ class SettingsPage(QWidget):
         main_layout = QVBoxLayout()
         main_layout.setAlignment(Qt.AlignTop)
         main_layout.setContentsMargins(30, 30, 30, 30)
+
+        # Notification icon
+        notif_row = QHBoxLayout()
+        notif_row.addStretch(1)
+        self.notif_btn = QPushButton()
+        notif_icon_path = get_resource_path('icons/notification.png')
+        if os.path.exists(notif_icon_path):
+            notif_icon = QIcon(notif_icon_path)
+            self.notif_btn.setIcon(notif_icon)
+            self.notif_btn.setIconSize(QSize(32, 32))
+        self.notif_btn.setFixedSize(48, 48)
+        self.notif_btn.setStyleSheet("background: none; border: none;")
+        self.notif_btn.clicked.connect(self.show_notifications)
+        notif_row.addWidget(self.notif_btn)
+        main_layout.addLayout(notif_row)
+
         self.title = QLabel(tr('SETTINGS', self.language))
         self.title.setFont(QFont("Century Gothic", 36))
         self.title.setStyleSheet("color: #fff; background: none;" if self.theme=='dark' else "color: #232323; background: none;")
@@ -771,6 +787,39 @@ class SettingsPage(QWidget):
             except Exception as e:
                 self.session.rollback()
                 QMessageBox.warning(self, tr('Delete Feedback', self.language), f"Error: {str(e)}")
+
+    def show_notifications(self):
+        # Show login/logout history for the user
+        if not self.session:
+            QMessageBox.information(self, "Notifications", "No database connection.")
+            return
+        user = self.session.query(User).filter_by(email=self.user_email).first()
+        if not user:
+            QMessageBox.information(self, "Notifications", "User not found.")
+            return
+        logs = self.session.query(SessionLog).filter_by(user_id=user.id).order_by(SessionLog.login_time.desc()).all()
+        if not logs:
+            QMessageBox.information(self, "Notifications", "No login/logout history found.")
+            return
+        msg = ""
+        for log in logs:
+            login_str = log.login_time.strftime('%Y-%m-%d %H:%M:%S') if log.login_time else '-'
+            logout_str = log.logout_time.strftime('%Y-%m-%d %H:%M:%S') if log.logout_time else '-'
+            msg += f"Login: {login_str}\nLogout: {logout_str}\n---\n"
+        # Show in a scrollable dialog
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Login/Logout History")
+        dlg.setFixedSize(400, 350)
+        layout = QVBoxLayout()
+        text = QTextEdit()
+        text.setReadOnly(True)
+        text.setText(msg)
+        layout.addWidget(text)
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dlg.accept)
+        layout.addWidget(close_btn)
+        dlg.setLayout(layout)
+        dlg.exec_()
 
 class HomePage(QWidget):
     def __init__(self, user_name="User", user_surname="", user_email="", session=None, mainwindow=None, session_log_id=None):
@@ -1045,13 +1094,46 @@ class HomePage(QWidget):
                         
                         # Sentiment label with score
                         if label == "error":
+                            sentiment_row = QHBoxLayout()
+                            # Emoji selection
+                            emoji_path = None
+                            if label.lower() == 'positive':
+                                emoji_path = get_resource_path('icons/positive.jpg')
+                            elif label.lower() == 'negative':
+                                emoji_path = get_resource_path('icons/negative.png')
+                            elif label.lower() == 'neutral':
+                                emoji_path = get_resource_path('icons/neutral.png')
+                            if emoji_path and os.path.exists(emoji_path):
+                                emoji_label = QLabel()
+                                emoji_pixmap = QPixmap(emoji_path)
+                                emoji_label.setPixmap(emoji_pixmap.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                                emoji_label.setAlignment(Qt.AlignVCenter)
+                                sentiment_row.addWidget(emoji_label)
                             sentiment_label = QLabel("Sunucuya ulaşılamıyor veya analiz yapılamadı.")
                             sentiment_label.setStyleSheet("color: #ff5555; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #b00020; font-size: 18px; font-weight: bold;")
                             print(f"API error: label=error, score={score}, explanation={explanation}")
                         else:
+                            sentiment_row = QHBoxLayout()
+                            # Emoji selection
+                            emoji_path = None
+                            if label.lower() == 'positive':
+                                emoji_path = get_resource_path('icons/positive.jpg')
+                            elif label.lower() == 'negative':
+                                emoji_path = get_resource_path('icons/negative.png')
+                            elif label.lower() == 'neutral':
+                                emoji_path = get_resource_path('icons/neutral.png')
+                            if emoji_path and os.path.exists(emoji_path):
+                                emoji_label = QLabel()
+                                emoji_pixmap = QPixmap(emoji_path)
+                                emoji_label.setPixmap(emoji_pixmap.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                                emoji_label.setAlignment(Qt.AlignVCenter)
+                                sentiment_row.addWidget(emoji_label)
                             sentiment_label = QLabel(f"{label.upper()} ({score:.2f})")
                             sentiment_label.setStyleSheet("color: #fff; font-size: 18px; font-weight: bold;" if self.theme == 'dark' else "color: #232323; font-size: 18px; font-weight: bold;")
-                        result_layout.addWidget(sentiment_label)
+                            sentiment_label.setAlignment(Qt.AlignVCenter)
+                            sentiment_row.addWidget(sentiment_label)
+                            sentiment_row.addStretch(1)
+                            result_layout.addLayout(sentiment_row)
                         
                         # Explanation
                         if explanation:
@@ -1317,6 +1399,4 @@ if __name__ == "__main__":
 
     # // Yapılacaklar
     # // AI eklenecek
-    # // Sonuca göre emoji barı eklenecek
-    # // Settings kısmına notification eklenecek
     # // Sonucun doğruluğu test edilecek
