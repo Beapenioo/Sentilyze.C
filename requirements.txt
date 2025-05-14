@@ -1,12 +1,14 @@
-PyQt5==5.15.9
+PyQt5>=5.15.0
+SQLAlchemy>=1.4.0
+pymysql>=1.0.0
+requests>=2.25.0
+transformers>=4.30.0
+torch>=2.0.0
 fastapi==0.104.1
 uvicorn==0.24.0
-sqlalchemy==2.0.23
-pymysql==1.1.0
 bcrypt==4.0.1
 pydantic==2.5.2
 pydantic[email]
 python-multipart==0.0.6
-requests==2.31.0
 ## pip install fastapi uvicorn
 ## uvicorn api:app --reload

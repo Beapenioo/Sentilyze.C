@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QMessageBox, QHBoxLayout, QRadioButton, QButtonGroup, QScrollArea, QDialog, QTextEdit
-from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtCore import Qt, QTimer, QSize, QMetaObject, Q_ARG
 from PyQt5.QtGui import QFont, QPixmap, QIcon
 from sqlalchemy import create_engine, Column, Integer, String, event, ForeignKey, DateTime, Float, Text, text
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -499,12 +499,14 @@ class ProfilePage(QWidget):
         del_btn = QPushButton(tr('Delete Account', self.language))
         del_btn.setStyleSheet("background-color: #b00020; color: #fff; font-size: 28px; border: none; border-radius: 8px; padding: 8px 0;")
         del_btn.setFixedWidth(350)
+        del_btn.setFixedHeight(48)
         del_btn.clicked.connect(self.delete_account)
         layout.addWidget(del_btn, alignment=Qt.AlignHCenter)
         layout.addSpacing(10)
         back_btn = QPushButton(tr('Back', self.language))
         back_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 24px; border: none; border-radius: 8px; padding: 8px 0;")
         back_btn.setFixedWidth(350)
+        back_btn.setFixedHeight(48)
         back_btn.clicked.connect(self.go_back)
         layout.addWidget(back_btn, alignment=Qt.AlignHCenter)
         layout.addSpacing(10)
@@ -673,6 +675,7 @@ class SettingsPage(QWidget):
         self.back_btn.setFont(QFont("Century Gothic", 24))
         self.back_btn.setStyleSheet("background-color: #ddd; color: #222; font-size: 24px; border: none; padding: 8px; border-radius: 8px;")
         self.back_btn.setFixedWidth(350)
+        self.back_btn.setFixedHeight(48)
         self.back_btn.clicked.connect(self.go_back)
         main_layout.addWidget(self.back_btn, alignment=Qt.AlignLeft)
         main_layout.addStretch(1)
@@ -832,6 +835,7 @@ class HomePage(QWidget):
         self.session_log_id = session_log_id or (mainwindow.session_log_id if mainwindow and hasattr(mainwindow, 'session_log_id') else None)
         self.language = mainwindow.language if mainwindow else 'en'
         self.theme = mainwindow.theme if mainwindow else 'dark'
+        self.ai_chat_dialog = None  # Initialize ai_chat_dialog as None
         
         # Kullanıcı bilgilerini mainwindow'a aktar
         if mainwindow:
@@ -920,12 +924,29 @@ class HomePage(QWidget):
         right_panel.setAlignment(Qt.AlignTop)
         right_panel.setSpacing(20)
 
+        # Profile button (top right)
         first_letter = self.user_name[0].upper() if self.user_name else "U"
         self.profile_btn = QPushButton(first_letter)
         self.profile_btn.setFixedSize(48, 48)
         self.profile_btn.setStyleSheet("background-color: #444; color: #fff; font-size: 24px; border-radius: 24px;")
         self.profile_btn.clicked.connect(self.show_profile_menu)
         right_panel.addWidget(self.profile_btn, alignment=Qt.AlignRight)
+
+        right_panel.addStretch(1)
+
+        # AI Button (center right)
+        self.ai_btn = QPushButton()
+        ai_icon_path = get_resource_path('icons/ai.png')
+        if os.path.exists(ai_icon_path):
+            ai_icon = QIcon(ai_icon_path)
+            self.ai_btn.setIcon(ai_icon)
+            self.ai_btn.setIconSize(QSize(40, 40))
+        self.ai_btn.setFixedSize(60, 60)
+        self.ai_btn.setStyleSheet("background: none; border: none; border-radius: 8px;")
+        self.ai_btn.clicked.connect(self.show_ai_chat)
+        right_panel.addWidget(self.ai_btn, alignment=Qt.AlignVCenter | Qt.AlignRight)
+
+        right_panel.addStretch(1)
 
         self.profile_menu = QWidget()
         self.profile_menu.setStyleSheet("background-color: #333; border-radius: 8px;")
@@ -1215,19 +1236,23 @@ class HomePage(QWidget):
             QMessageBox.warning(self, "Error", f"Failed to submit feedback: {str(e)}")
 
     def show_profile_menu(self):
-        try:
-            if self.profile_menu.isVisible():
-                self.profile_menu.hide()
-            else:
-                self.profile_menu.show()
-            layout = self.profile_menu.layout()
-            if layout:
-                for i in range(layout.count()):
-                    btn = layout.itemAt(i).widget()
-                    if btn and btn.text().lower() in ["log out", "çıkış yap"]:
-                        btn.clicked.connect(self.logout)
-        except Exception as e:
-            print(f"Profile menu error: {e}")
+        from PyQt5.QtWidgets import QMenu
+        menu = QMenu()
+        menu.setStyleSheet(
+            "QMenu { background-color: #333; color: #fff; border-radius: 8px; font-size: 16px; }"
+            "QMenu::item:selected { background-color: #444; }"
+        )
+        profile_action = menu.addAction("Profile")
+        settings_action = menu.addAction("Settings")
+        logout_action = menu.addAction("Log out")
+        profile_action.triggered.connect(self.goto_profile)
+        settings_action.triggered.connect(self.goto_settings)
+        logout_action.triggered.connect(self.logout)
+        # Tam butonun altına aç
+        btn_rect = self.profile_btn.rect()
+        btn_global = self.profile_btn.mapToGlobal(btn_rect.bottomLeft())
+        menu.move(btn_global.x(), btn_global.y())
+        menu.exec_()
 
     def goto_profile(self):
         self.parent().setCentralWidget(ProfilePage(self.user_name, self.user_surname, self.user_email, self.session, self.language, self.session_log_id, self.mainwindow))
@@ -1319,6 +1344,145 @@ class HomePage(QWidget):
         except Exception as e:
             print(f"API error: {e}")
             return "error", 0, ""
+
+    def show_ai_chat(self):
+        if self.ai_chat_dialog is not None:
+            self.ai_chat_dialog.show()
+            self.ai_chat_dialog.raise_()
+            return
+
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QSizePolicy
+        dlg = QDialog(self)
+        dlg.setWindowTitle("AI Chat")
+        dlg.setFixedSize(500, 600)
+        layout = QVBoxLayout()
+        
+        # Chat history
+        self.ai_chat_history = QTextEdit()
+        self.ai_chat_history.setReadOnly(True)
+        self.ai_chat_history.setStyleSheet("""
+            QTextEdit {
+                background-color: #2A2A2A;
+                color: #fff;
+                font-size: 15px;
+                border-radius: 8px;
+                padding: 10px;
+            }
+        """)
+        layout.addWidget(self.ai_chat_history)
+        
+        # Input area
+        input_row = QHBoxLayout()
+        self.ai_chat_input = QLineEdit()
+        self.ai_chat_input.setPlaceholderText("Ask something to AI...")
+        self.ai_chat_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #444;
+                color: #fff;
+                font-size: 15px;
+                border-radius: 8px;
+                padding: 10px;
+                border: none;
+            }
+        """)
+        self.ai_chat_input.returnPressed.connect(self.send_ai_message)  # Enter tuşu ile gönderme
+        input_row.addWidget(self.ai_chat_input)
+        
+        send_btn = QPushButton("Send")
+        send_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #757575;
+                color: #fff;
+                font-size: 15px;
+                border-radius: 8px;
+                padding: 10px 20px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #888;
+            }
+        """)
+        send_btn.clicked.connect(self.send_ai_message)
+        input_row.addWidget(send_btn)
+        layout.addLayout(input_row)
+        
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #444;
+                color: #fff;
+                font-size: 15px;
+                border-radius: 8px;
+                padding: 10px;
+                border: none;
+                margin-top: 10px;
+            }
+            QPushButton:hover {
+                background-color: #555;
+            }
+        """)
+        close_btn.clicked.connect(dlg.accept)
+        layout.addWidget(close_btn)
+        
+        dlg.setLayout(layout)
+        self.ai_chat_dialog = dlg
+        dlg.show()
+
+    def send_ai_message(self):
+        user_msg = self.ai_chat_input.text().strip()
+        if not user_msg:
+            return
+        self.ai_chat_history.append(f'<div style="margin: 10px 0;"><b style="color: #4CAF50;">You:</b> {user_msg}</div>')
+        self.ai_chat_input.clear()
+
+        import threading
+        import requests
+        import json
+        from PyQt5.QtCore import QMetaObject, Qt, Q_ARG
+
+        def get_ai_response():
+            try:
+                api_key = "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"
+                url = "https://openrouter.ai/api/v1/chat/completions"
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "model": "deepseek/deepseek-r1:free",
+                    "messages": [
+                        {"role": "user", "content": user_msg}
+                    ]
+                }
+                response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
+                if response.status_code == 200:
+                    data = response.json()
+                    ai_response = data["choices"][0]["message"]["content"]
+                    QMetaObject.invokeMethod(
+                        self.ai_chat_history,
+                        "append",
+                        Qt.QueuedConnection,
+                        Q_ARG(str, f'<div style="margin: 10px 0;"><b style="color: #2196F3;">AI:</b> {ai_response}</div>')
+                    )
+                else:
+                    error_msg = f"API Error: {response.status_code} - {response.text}"
+                    QMetaObject.invokeMethod(
+                        self.ai_chat_history,
+                        "append",
+                        Qt.QueuedConnection,
+                        Q_ARG(str, f'<div style="margin: 10px 0; color: #f44336;">{error_msg}</div>')
+                    )
+            except Exception as e:
+                error_msg = f"Error: {str(e)}"
+                QMetaObject.invokeMethod(
+                    self.ai_chat_history,
+                    "append",
+                    Qt.QueuedConnection,
+                    Q_ARG(str, f'<div style="margin: 10px 0; color: #f44336;">{error_msg}</div>')
+                )
+
+        threading.Thread(target=get_ai_response, daemon=True).start()
 
 class MainWindow(QMainWindow):
     def __init__(self):
