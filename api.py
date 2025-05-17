@@ -9,7 +9,8 @@ class AnalyzeRequest(BaseModel):
     lang: str
 
 POSITIVE_WORDS_TR = [
-    "güzel", "mutlu", "harika", "keyif", "iyi", "sev", "teşekkür", "başar", "pozitif", "sevinç", "hoş", "destek", "sıcak", "olumlu", "tebrik", "başarı", "memnun", "sevgi", "yardım", "şanslı", "umut", "güler", "hoşgörü", "rahat", "huzur"
+    "güzel", "mutlu", "harika", "keyif", "iyi", "sev", "teşekkür", "başar", "pozitif", "sevinç", "hoş", "destek", "sıcak", "olumlu", "tebrik", "başarı", "memnun", "sevgi", "yardım", "şanslı", "umut", "güler", "hoşgörü", "rahat", "huzur",
+    "lezzetli", "lezzet", "mükemmel", "fantastik", "süper", "çok iyi", "enfes"
 ]
 NEGATIVE_WORDS_TR = [
     "kötü", "üzgün", "mutsuz", "berbat", "sinir", "korkunç", "negatif", "moral", "sıkıl", "bık", "yorgun", "hata", "sorun", "problem", "bozul", "drained", "frustrated", "olumsuz", "aksilik", "üzücü", "desteksiz", "şanssız", "umutsuz", "ağla", "kavga", "kayıp", "zor"

@@ -4,11 +4,17 @@ pymysql>=1.0.0
 requests>=2.25.0
 transformers>=4.30.0
 torch>=2.0.0
-fastapi==0.104.1
-uvicorn==0.24.0
-bcrypt==4.0.1
-pydantic==2.5.2
-pydantic[email]
-python-multipart==0.0.6
+fastapi>=0.115.0
+uvicorn>=0.34.0
+bcrypt>=4.0.0
+pydantic>=2.5.0
+python-multipart>=0.0.6
+tiktoken>=0.6.0
+protobuf>=4.25.0
+python-dotenv>=1.0.0
+
+# Not: Aşağıdaki komutlar sadece hatırlatma amaçlıdır, kurulum için gerekli değildir
+
 ## pip install fastapi uvicorn
-## uvicorn api:app --reload
+# uvicorn sentiment_api:app --reload
+# uvicorn sentiment_api:app --host 127.0.0.1 --port 8001

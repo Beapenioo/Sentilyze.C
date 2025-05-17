@@ -940,7 +940,7 @@ class HomePage(QWidget):
         if os.path.exists(ai_icon_path):
             ai_icon = QIcon(ai_icon_path)
             self.ai_btn.setIcon(ai_icon)
-            self.ai_btn.setIconSize(QSize(40, 40))
+            self.ai_btn.setIconSize(QSize(60, 60))
         self.ai_btn.setFixedSize(60, 60)
         self.ai_btn.setStyleSheet("background: none; border: none; border-radius: 8px;")
         self.ai_btn.clicked.connect(self.show_ai_chat)
@@ -1333,7 +1333,7 @@ class HomePage(QWidget):
     def analyze_sentiment_api(self, text, lang="en"):
         try:
             response = requests.post(
-                "http://127.0.0.1:8000/analyze",
+                "http://127.0.0.1:8001/analyze",
                 json={"text": text, "lang": lang}
             )
             if response.ok:
@@ -1443,7 +1443,7 @@ class HomePage(QWidget):
 
         def get_ai_response():
             try:
-                api_key = "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"
+                api_key = "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"
                 url = "https://openrouter.ai/api/v1/chat/completions"
                 headers = {
                     "Authorization": f"Bearer {api_key}",
@@ -1562,5 +1562,4 @@ if __name__ == "__main__":
     main()
 
     # // Yapılacaklar
-    # // AI eklenecek
-    # // Sonucun doğruluğu test edilecek
+    # // ML Modeli eklendi , sonucun doğruluğu test edilecek
