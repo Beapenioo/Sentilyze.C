@@ -1,0 +1,24 @@
+PyQt5>=5.15.0
+SQLAlchemy>=1.4.0
+pymysql>=1.0.0
+requests>=2.25.0
+transformers>=4.30.0
+torch>=2.0.0
+fastapi>=0.115.0
+uvicorn>=0.34.0
+bcrypt>=4.0.0
+pydantic>=2.5.0
+python-multipart>=0.0.6
+tiktoken>=0.6.0
+protobuf>=4.25.0
+python-dotenv>=1.0.0
+langdetect==1.0.9
+emoji==2.8.0
+python-jose==3.3.0
+passlib==1.7.4
+
+# Not: Aşağıdaki komutlar sadece hatırlatma amaçlıdır, kurulum için gerekli değildir
+
+## pip install fastapi uvicorn
+# uvicorn sentiment_api:app --reload
+# uvicorn sentiment_api:app --host 127.0.0.1 --port 8001
