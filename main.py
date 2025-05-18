@@ -129,18 +129,14 @@ def get_db_engine():
             DATABASE_URL = "mysql+pymysql://root:@localhost:3306/sentilyze"
             db_engine = create_engine(DATABASE_URL, echo=True)
             
-            # Veritabanı bağlantısını test et
             with db_engine.connect() as conn:
-                # Veritabanının var olup olmadığını kontrol et
                 result = conn.execute(text("SELECT DATABASE()"))
                 current_db = result.scalar()
                 
                 if not current_db:
-                    # Veritabanı yoksa oluştur
                     conn.execute(text("CREATE DATABASE IF NOT EXISTS sentilyze"))
                     conn.execute(text("USE sentilyze"))
                 
-                # Tabloları oluştur
                 Base.metadata.create_all(db_engine)
                 conn.commit()
                 
@@ -282,13 +278,11 @@ class SignUp(QWidget):
             return
 
         try:
-            # Önce mevcut kullanıcıyı kontrol et
             existing_user = self.session.query(User).filter_by(email=email).first()
             if existing_user:
                 QMessageBox.warning(self, "Error", "Email already exists")
                 return
 
-            # Yeni kullanıcı oluştur
             new_user = User(
                 name=name,
                 surname=surname,
@@ -298,7 +292,6 @@ class SignUp(QWidget):
             self.session.add(new_user)
             self.session.commit()
 
-            # Kullanıcının oluşturulduğunu doğrula
             user = self.session.query(User).filter_by(email=email).first()
             if user:
                 print(f"User created successfully: {user.name} {user.surname}")
@@ -524,18 +517,12 @@ class ProfilePage(QWidget):
             try:
                 user = self.session.query(User).filter_by(email=self.user_email).first()
                 if user:
-                    # Kullanıcının tüm text_entry id'lerini al
                     text_ids = [t.id for t in self.session.query(TextEntry).filter_by(user_id=user.id).all()]
                     if text_ids:
-                        # Önce feedbackleri sil
                         self.session.query(Feedback).filter(Feedback.text_id.in_(text_ids)).delete(synchronize_session=False)
-                        # Sonra analysis_results sil
                         self.session.query(AnalysisResult).filter(AnalysisResult.text_id.in_(text_ids)).delete(synchronize_session=False)
-                    # Text_entries sil
                     self.session.query(TextEntry).filter_by(user_id=user.id).delete(synchronize_session=False)
-                    # SessionLogs sil
                     self.session.query(SessionLog).filter_by(user_id=user.id).delete(synchronize_session=False)
-                    # En son kullanıcıyı sil
                     self.session.delete(user)
                     self.session.commit()
                 self.parent().setCentralWidget(FirstPage(mainwindow=self.window()))
@@ -582,7 +569,6 @@ class SettingsPage(QWidget):
         main_layout.setAlignment(Qt.AlignTop)
         main_layout.setContentsMargins(30, 30, 30, 30)
 
-        # Notification icon
         notif_row = QHBoxLayout()
         notif_row.addStretch(1)
         self.notif_btn = QPushButton()
@@ -757,14 +743,10 @@ class SettingsPage(QWidget):
             try:
                 user = self.session.query(User).filter_by(email=self.user_email).first()
                 if user:
-                    # Kullanıcının tüm text_entry id'lerini al
                     text_ids = [t.id for t in self.session.query(TextEntry).filter_by(user_id=user.id).all()]
                     if text_ids:
-                        # Önce feedbackleri sil
                         self.session.query(Feedback).filter(Feedback.text_id.in_(text_ids)).delete(synchronize_session=False)
-                        # Sonra analysis_results sil
                         self.session.query(AnalysisResult).filter(AnalysisResult.text_id.in_(text_ids)).delete(synchronize_session=False)
-                    # En son text_entries sil
                     self.session.query(TextEntry).filter_by(user_id=user.id).delete(synchronize_session=False)
                     self.session.commit()
                     QMessageBox.information(self, tr('Delete History', self.language), tr('History deleted successfully!', self.language))
@@ -837,7 +819,6 @@ class HomePage(QWidget):
         self.theme = mainwindow.theme if mainwindow else 'dark'
         self.ai_chat_dialog = None  # Initialize ai_chat_dialog as None
         
-        # Kullanıcı bilgilerini mainwindow'a aktar
         if mainwindow:
             mainwindow.user_name = user_name
             mainwindow.user_surname = user_surname
@@ -887,7 +868,6 @@ class HomePage(QWidget):
         self.history_scroll.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         left_panel.addWidget(self.history_scroll)
 
-        # Geçmiş kayıtlarını yükle
         self.load_history()
 
         left_panel.addStretch(1)
@@ -987,13 +967,11 @@ class HomePage(QWidget):
 
     def load_history(self):
         try:
-            # Önceki geçmiş kayıtlarını temizle
             while self.history_list.count():
                 item = self.history_list.takeAt(0)
                 if item.widget():
                     item.widget().deleteLater()
 
-            # Kullanıcının geçmiş kayıtlarını veritabanından al
             user = self.session.query(User).filter_by(email=self.user_email).first()
             if user:
                 text_entries = self.session.query(TextEntry).filter_by(user_id=user.id).order_by(TextEntry.created_at.desc()).all()
@@ -1012,7 +990,6 @@ class HomePage(QWidget):
             print(f"Error loading history: {e}")
 
     def show_history_item(self, text):
-        # Geçmiş öğesini tıklandığında metin kutusuna yerleştir
         self.text_input.setText(text)
 
     def send_message(self):
@@ -1248,7 +1225,6 @@ class HomePage(QWidget):
         profile_action.triggered.connect(self.goto_profile)
         settings_action.triggered.connect(self.goto_settings)
         logout_action.triggered.connect(self.logout)
-        # Tam butonun altına aç
         btn_rect = self.profile_btn.rect()
         btn_global = self.profile_btn.mapToGlobal(btn_rect.bottomLeft())
         menu.move(btn_global.x(), btn_global.y())
@@ -1443,7 +1419,7 @@ class HomePage(QWidget):
 
         def get_ai_response():
             try:
-                api_key = "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"
+                api_key = "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"
                 url = "https://openrouter.ai/api/v1/chat/completions"
                 headers = {
                     "Authorization": f"Bearer {api_key}",
@@ -1492,7 +1468,6 @@ class MainWindow(QMainWindow):
         self.theme = 'dark'
         self.language = 'en'
         self.session_log_id = None  # Always keep this in mainwindow
-        # Veritabanı bağlantısını başlat
         try:
             self.session = get_db_session()
             if not self.session:
@@ -1560,6 +1535,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    # // Yapılacaklar
-    # // ML Modeli eklendi , sonucun doğruluğu test edilecek

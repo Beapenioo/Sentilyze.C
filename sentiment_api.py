@@ -189,44 +189,36 @@ def analyze_bert(text: str, lang: str) -> Tuple[str, float]:
 async def analyze(req: AnalyzeRequest):
     try:
         text = preprocess_text(req.text)
+        words = text.split()
         
-        # Dil tespiti
+        # Metin dilini tespit et
         try:
-            lang = detect(text)
-            if lang not in ["tr", "en"]:
-                lang = "en"  # Varsayılan olarak İngilizce
+            detected_lang = detect(text)
+            if detected_lang not in ['tr', 'en']:
+                detected_lang = 'tr'  # Varsayılan olarak Türkçe kullan
         except:
-            lang = "en"  # Hata durumunda varsayılan olarak İngilizce
+            detected_lang = 'tr'  # Dil tespiti başarısız olursa Türkçe kullan
         
-        if lang == "tr":
-            # BERT modeli ile analiz
-            bert_label, bert_score = analyze_bert(text, lang)
-            
-            # Kural tabanlı analiz
-            rule_label, rule_score = analyze_rule_based_tr(text)
-            
-            # Ağırlıklı ortalama hesapla (BERT: 0.4, Rule-based: 0.6)
-            final_score = (bert_score * 0.4) + (rule_score * 0.6)  # Kural tabanlı analize daha fazla ağırlık verdik
-            
-            # Etiket belirle - Eşik değerlerini yükselttik
-            if final_score > 0.6:  # Eşik değerini yükselttik
-                label = "positive"
-            elif final_score < 0.4:  # Eşik değerini yükselttik
-                label = "negative"
+        # Kısa metinlerde (3 kelime veya daha az) kural tabanlı analiz uygula
+        if len(words) <= 3:
+            if detected_lang == 'tr':
+                label, score = analyze_rule_based_tr(text)
             else:
-                label = "neutral"
-            
-            explanation = f"Language: {lang}, BERT: {bert_label} ({bert_score:.2f}), Rule-based: {rule_label} ({rule_score:.2f})"
-        else:
-            # İngilizce için sadece BERT modeli kullan
-            label, final_score = analyze_bert(text, lang)
-            explanation = f"Language: {lang}, Model: {label} ({final_score:.2f})"
+                label, score = analyze_bert(text, 'en')
+            return {
+                "label": label,
+                "score": score,
+                "explanation": f"Short text: {'Rule-based Turkish' if detected_lang == 'tr' else 'BERT English'} analysis applied.",
+                "language": detected_lang
+            }
         
+        # Uzun metinlerde BERT analizi uygula
+        label, score = analyze_bert(text, detected_lang)
         return {
             "label": label,
-            "score": final_score,
-            "explanation": explanation,
-            "language": lang
+            "score": score,
+            "explanation": f"Long text: BERT {detected_lang.upper()} analysis applied.",
+            "language": detected_lang
         }
         
     except Exception as e:
@@ -235,4 +227,4 @@ async def analyze(req: AnalyzeRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8002)
+    uvicorn.run(app, host="127.0.0.1", port=8001)
