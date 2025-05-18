@@ -22,3 +22,4 @@ passlib==1.7.4
 ## pip install fastapi uvicorn
 # uvicorn sentiment_api:app --reload
 # uvicorn sentiment_api:app --host 127.0.0.1 --port 8001
+

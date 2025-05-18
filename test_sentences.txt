@@ -1,71 +1,88 @@
 # Türkçe Pozitif Cümleler
-Bu kitap beni derinden etkiledi, herkese tavsiye ederim.
-Bu tatil gerçekten muhteşemdi, her şey mükemmeldi.
-Yeni projemiz çok başarılı oldu, müşterilerimiz çok memnun.
-Bu film beni çok etkiledi, gözlerimden yaşlar boşandı.
-Bugünkü toplantı çok verimli geçti, herkes çok memnun kaldı.
-Bu restoranın yemekleri gerçekten muhteşem, kesinlikle tekrar geleceğim.
-Yeni aldığım telefon inanılmaz hızlı ve kamerası harika çalışıyor.
-Bu konser hayatımın en güzel anlarından biriydi.
-Bu yazılım projesi beklentilerimizin üzerinde başarılı oldu.
-Bu doktor hastalarına karşı çok ilgili ve profesyonel davranıyor.
+Bu uygulama harika, kullanımı çok kolay.
+Yeni aldığım telefonun kamerası mükemmel.
+Bu restoranın yemekleri çok lezzetli.
+Bu kafe'nin kahvesi muhteşem, personeli de çok ilgili.
+Yeni aldığım bilgisayar inanılmaz hızlı ve performansı harika.
+Bu film gerçekten etkileyiciydi, senaryosu çok başarılı.
+Bugünkü sunum çok başarılı geçti, herkes çok etkilendi.
+Bu restoranın atmosferi çok güzel, yemekler de bir harika.
+Yeni projemiz müşterilerimizden çok olumlu geri bildirimler aldı.
+Bu konser deneyimi unutulmazdı, sanatçılar muhteşemdi.
+Bu yazılım güncellemesi kullanıcı deneyimini çok iyileştirdi.
+Bu öğretmen dersleri çok eğlenceli ve öğretici anlatıyor.
 
 # Türkçe Negatif Cümleler
-Bu restoranın servisi berbat, yemekler soğuk geldi ve fiyatlar çok yüksek.
-Bu film tam bir zaman kaybıydı, hiçbir şey anlamadım.
-Bu telefon sürekli donuyor ve pil ömrü çok kısa.
-Bu yazılımda çok fazla hata var, kullanımı imkansız.
-Bu otel rezil bir deneyimdi, odalar kirli ve personel ilgisizdi.
-Bu mağazanın müşteri hizmetleri çok kötü, kimse yardımcı olmuyor.
-Bu ders çok sıkıcı ve anlaşılması imkansız.
-Bu ürünün kalitesi çok düşük, param boşa gitti.
-Bu şirketin çalışma koşulları çok kötü, herkes mutsuz.
-Bu yemek çok tatsız ve soğuk, iade etmek istiyorum.
+Bu uygulama sürekli hata veriyor.
+Film çok sıkıcıydı, hiç beğenmedim.
+Bu bilgisayar çok yavaş çalışıyor.
+Bu kafe'nin servisi çok yavaş ve fiyatları çok yüksek.
+Bu restoranın yemekleri çok tatsız ve porsiyonları çok küçük.
+Bu proje tam bir başarısızlık oldu, müşteriler çok kızgın.
+Bu konser organizasyonu berbat, ses sistemi sürekli kesiliyor.
+Bu yazılım güncellemesi her şeyi mahvetti, hiçbir şey çalışmıyor.
+Bu öğretmen dersleri çok sıkıcı anlatıyor, kimse anlamıyor.
 
 # Türkçe Nötr Cümleler
-Bugün markete gittim ve alışveriş yaptım.
-Dün akşam arkadaşlarımla buluştum.
-Bu hafta yeni bir projeye başladım.
-Geçen ay yeni bir eve taşındım.
-Bugün toplantıya katıldım.
-Bu hafta sonu şehir dışına çıkacağım.
+Bugün markete gittim.
 Dün yeni bir kitap aldım.
-Bu ay faturaları ödedim.
-Geçen hafta doktora gittim.
-Bugün işe gittim.
+Yarın sınavım var.
+Bugün bankaya gittim ve işlemlerimi yaptım.
+Dün akşam ailemle yemek yedim.
+Bu hafta yeni bir kursa başladım.
+Geçen ay yeni bir işe başladım.
+Bugün randevuya gittim.
+Bu hafta sonu alışverişe çıkacağım.
+Dün yeni bir film izledim.
+Bu ay kira ödemesini yaptım.
+Geçen hafta dişçiye gittim.
 
 # İngilizce Pozitif Cümleler
-This book deeply moved me, I recommend it to everyone.
-This vacation was truly amazing, everything was perfect.
-Our new project was very successful, our clients are very satisfied.
-This movie really touched me, I couldn't stop crying.
-Today's meeting was very productive, everyone was happy.
-The food at this restaurant is really excellent, I'll definitely come again.
-My new phone is incredibly fast and the camera works great.
-This concert was one of the best moments of my life.
-This software project exceeded our expectations.
-This doctor is very caring and professional with patients.
+This app is fantastic and easy to use.
+The new phone's camera is excellent.
+The food at this restaurant is delicious.
+This app is very user-friendly and has a beautiful interface.
+The coffee at this cafe is amazing, and the staff is very attentive.
+My new computer is incredibly fast and performs excellently.
+This movie was really impressive, the screenplay was brilliant.
+Today's presentation went very well, everyone was impressed.
+This restaurant has a great atmosphere and the food is delicious.
+Our new project received very positive feedback from our clients.
+This concert experience was unforgettable, the artists were amazing.
+This software update significantly improved the user experience.
+This teacher makes the lessons very fun and educational.
 
 # İngilizce Negatif Cümleler
-The service at this restaurant is terrible, the food was cold and prices are too high.
-This movie was a complete waste of time, I didn't understand anything.
-This phone keeps freezing and the battery life is very short.
-This software has too many bugs, it's impossible to use.
-This hotel was a horrible experience, rooms were dirty and staff was unhelpful.
-This store's customer service is very poor, no one helps.
-This class is very boring and impossible to understand.
-The quality of this product is very low, my money was wasted.
-The working conditions at this company are very bad, everyone is unhappy.
-This food is very tasteless and cold, I want to return it.
+This app keeps crashing all the time.
+The movie was boring, I didn't like it.
+This computer is running very slow.
+This cafe's service is very slow and the prices are too high.
+This computer keeps overheating and performs very poorly.
+This project was a complete failure, clients are very angry.
+This concert organization is terrible, the sound system keeps cutting out.
+This software update ruined everything, nothing works.
+This teacher makes the lessons very boring, no one understands.
 
 # İngilizce Nötr Cümleler
-I went to the store today and did some shopping.
-I met with my friends last night.
-I started a new project this week.
-I moved to a new house last month.
-I attended a meeting today.
-I'm going out of town this weekend.
+I went to the store today.
 I bought a new book yesterday.
-I paid the bills this month.
-I went to the doctor last week.
-I went to work today. 
+I have an exam tomorrow.
+I went to the bank today and completed my transactions.
+I had dinner with my family last night.
+I started a new course this week.
+I started a new job last month.
+I went to an appointment today.
+I'm going shopping this weekend.
+I watched a new movie yesterday.
+I paid the rent this month.
+I went to the dentist last week.
+
+# Ekstra Türkçe
+Bugün hava çok güzel. # pozitif
+Bugün hava çok kötü. # negatif
+Bugün hava bulutlu. # nötr
+
+# Ekstra İngilizce
+The weather is great today. # positive
+The weather is terrible today. # negative
+The weather is cloudy today. # neutral 
